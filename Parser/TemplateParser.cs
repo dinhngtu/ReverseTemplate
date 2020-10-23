@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
@@ -44,8 +44,8 @@ namespace ReverseTemplate.Parser {
 
         static TextParser<CaptureSection> CaptureBlock { get; } =
             from part in RegexPart.Or(FormatPart)
-            from capt in VarNamePart
-            select new CaptureSection(part, capt.ToStringValue());
+            from capt in VarNamePart.Optional()
+            select new CaptureSection(part, capt?.ToStringValue());
 
         static TextParser<char> LeftBracket { get; } = Character.EqualTo('{');
         static TextParser<char> RightBracket { get; } = Character.EqualTo('}');

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -15,7 +15,7 @@ namespace ReverseTemplate.Parser {
         public TemplateLine(IEnumerable<LineSection> sections) {
             _sections = new List<LineSection>(sections);
             _regex = ToRegex(_sections);
-            _captureNames = _sections.OfType<CaptureSection>().Select(x => x.VarName).ToList();
+            _captureNames = _sections.OfType<CaptureSection>().Where(x => x.VarName != null).Select(x => x.VarName!).ToList();
         }
 
         string ToRegex(IEnumerable<LineSection> sections) {

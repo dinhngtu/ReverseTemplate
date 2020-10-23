@@ -32,6 +32,14 @@ namespace ReverseTemplate.Tests {
         }
 
         [Fact]
+        public void NonCaptureTest() {
+            var line = "{{/pattern/}}";
+            var outLine = AssertParses(line);
+            Assert.Single(outLine.Sections);
+            outLine.AssertIsCapture(0, "{{/pattern/}}");
+        }
+
+        [Fact]
         public void MultipleCapturesTest() {
             var line = "{{/p1/=c1}} aaa {{%f=c2}}";
             var outLine = AssertParses(line);
