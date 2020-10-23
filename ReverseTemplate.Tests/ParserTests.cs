@@ -42,6 +42,15 @@ namespace ReverseTemplate.Tests {
         }
 
         [Fact]
+        public void CaptureNamesTest() {
+            var line = "{{/p1/=c1}} aaa {{%f=c2}}";
+            var outLine = AssertParses(line);
+            Assert.Equal(2, outLine.CaptureNames.Count);
+            Assert.Contains("c1", outLine.CaptureNames);
+            Assert.Contains("c2", outLine.CaptureNames);
+        }
+
+        [Fact]
         public void ConsecutiveCapturesTest() {
             var line = "{{/p1/=c1}}{{%f=c2}}";
             var outLine = AssertParses(line);
