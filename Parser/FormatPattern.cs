@@ -1,9 +1,17 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Text;
 
 namespace ReverseTemplate.Parser {
     public class FormatPattern : Pattern {
+        static Dictionary<string, string> Formats = new Dictionary<string, string>() {
+            ["d"] = "[0-9]+",
+            ["f"] = "[-+]?[0-9]*\\.?[0-9]+",
+            ["*"] = ".*",
+            ["s"] = "\\s*",
+            ["S"] = "\\s+",
+        };
+
         public FormatPattern(string format) {
             Format = format;
         }
@@ -11,13 +19,10 @@ namespace ReverseTemplate.Parser {
         public string Format { get; }
 
         public override string ToRegex() {
-            switch (Format) {
-                case "d":
-                    return "[0-9]+";
-                case "f":
-                    return "[-+]?[0-9]*\\.?[0-9]+";
-                default:
-                    throw new NotImplementedException($"Unknown format '{Format}'");
+            if (Formats.TryGetValue(Format, out var r)) {
+                return r;
+            } else {
+                throw new NotImplementedException($"Unknown format '{Format}'");
             }
         }
 
