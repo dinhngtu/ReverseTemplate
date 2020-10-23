@@ -77,7 +77,7 @@ namespace ReverseTemplate.Parser {
         static TokenListParser<TemplateToken, LineSection[]> TemplateLineToken { get; } =
             CaptureToken.Or(Token.EqualTo(TemplateToken.RawText).Select(t => new TextSection(string.Join("", t.ToStringValue())) as LineSection)).Many().AtEnd();
 
-        public static bool TryParse(string line, out TemplateLine outLine, out string error, out Position errorPosition) {
+        public static bool TryParse(string line, out TemplateLine? outLine, out string? error, out Position errorPosition) {
             var tokens = TemplateTokenizer.TryTokenize(line);
             if (!tokens.HasValue) {
                 outLine = null;
