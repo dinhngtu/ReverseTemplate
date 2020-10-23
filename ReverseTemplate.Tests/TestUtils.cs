@@ -1,7 +1,9 @@
-﻿using ReverseTemplate.Parser;
+﻿using ReverseTemplate.Engine;
+using ReverseTemplate.Parser;
 using Superpower.Model;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Text;
 using Xunit;
 
@@ -12,7 +14,7 @@ namespace ReverseTemplate.Tests {
             Assert.Null(error);
             Assert.Equal(Position.Empty, errorPosition);
             Assert.NotNull(outLine);
-            return outLine;
+            return outLine!;
         }
 
         public static void AssertDoesntParse(string line) {
@@ -35,6 +37,18 @@ namespace ReverseTemplate.Tests {
         public static void AssertIsCapture(this TemplateLine line, int idx, string text) {
             Assert.IsType<CaptureSection>(line.Sections[idx]);
             Assert.Equal(text, line.Sections[idx].ToString());
+        }
+
+        static IEnumerable<TemplateLine> ParseLines(TextReader reader) {
+            string? l;
+            while ((l = reader.ReadLine()) != null) {
+                yield return AssertParses(l);
+            }
+        }
+
+        public static Template MakeTemplate(string template) {
+            using var reader = new StringReader(template);
+            return new Template(ParseLines(reader));
         }
     }
 }
