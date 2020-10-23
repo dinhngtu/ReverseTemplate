@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Remove="ReverseTemplate.Tests\**" />
+    <EmbeddedResource Remove="ReverseTemplate.Tests\**" />
+    <None Remove="ReverseTemplate.Tests\**" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Superpower" Version="2.3.0" />
+  </ItemGroup>
+
+</Project>
