@@ -81,5 +81,12 @@ namespace ReverseTemplate.Tests {
             Assert.Single(outLine.Sections);
             outLine.AssertIsText(0, "}aaa{");
         }
+
+        [Fact]
+        public void EmptyLineTest() {
+            var line = "";
+            var outLine = AssertParses(line);
+            Assert.Empty(outLine.Sections);
+        }
     }
 }
