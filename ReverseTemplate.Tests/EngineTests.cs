@@ -21,6 +21,15 @@ namespace ReverseTemplate.Tests {
         }
 
         [Fact]
+        public async Task SingleGroupTestAsync() {
+            using var input = new StringReader("a=1");
+            var templateLine = AssertParses(@"a={{%d=a}}");
+            var engine = new Template(new[] { templateLine });
+            var output = await engine.ProcessRecordsAsync(input, false).SingleAsync();
+            Assert.Equal(1, output.Count);
+        }
+
+        [Fact]
         public async Task MultipleTestAsync() {
             using var input = new StringReader("a=1\na=2\na=3");
             var templateLine = AssertParses(@"a={{%d=a}}");
@@ -31,7 +40,14 @@ namespace ReverseTemplate.Tests {
         }
 
         [Fact]
-        public async Task TrailingTestAsync() {
+        public async Task TrailingTestCountAsync() {
+            using var input = new StringReader("\na=1\na=2\n\na=3\n\n\n");
+            var engine = MakeTemplate("a={{%d=a}}\n\n");
+            Assert.Equal(3, await engine.ProcessRecordsAsync(input, true).CountAsync());
+        }
+
+        [Fact]
+        public async Task TrailingTestContentAsync() {
             using var input = new StringReader("\na=1\na=2\n\na=3\n\n\n");
             var engine = MakeTemplate("a={{%d=a}}\n\n");
             var count = 0;
@@ -39,7 +55,6 @@ namespace ReverseTemplate.Tests {
                 Assert.Equal((count + 1).ToString(), output["a"]);
                 count++;
             }
-            Assert.Equal(3, count);
         }
 
         [Fact]

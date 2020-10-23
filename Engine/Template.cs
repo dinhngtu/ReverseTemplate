@@ -1,4 +1,5 @@
 ﻿using ReverseTemplate.Parser;
+using Superpower;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -19,6 +20,19 @@ namespace ReverseTemplate.Engine {
             _cache = _templateLines.Select(l => new Regex(l.ToRegex())).ToList();
         }
 
+        static IEnumerable<TemplateLine> ParseLines(TextReader reader) {
+            string? l;
+            while ((l = reader.ReadLine()) != null) {
+                if (TemplateParser.TryParse(l, out var tl, out var error, out var pos)) {
+                    yield return tl;
+                } else {
+                    throw new ParseException(error, pos);
+                }
+            }
+        }
+
+        public Template(TextReader data) : this(ParseLines(data)) { }
+
         IEnumerable<(TemplateLine line, Regex regex, bool first)> FilterTemplate(TemplateOptions options, bool loop = false) {
             do {
                 for (int i = 0; i < _templateLines.Count; i++) {
@@ -30,13 +44,47 @@ namespace ReverseTemplate.Engine {
             } while (loop);
         }
 
+        public IEnumerable<IDictionary<string, string?>> ProcessRecords(TextReader data, bool multiple, TemplateOptions? options = null) {
+            if (options == null) {
+                options = TemplateOptions.Default;
+            }
+            do {
+                var dict = new Dictionary<string, string?>();
+                foreach ((var tl, var r, var first) in FilterTemplate(options)) {
+                    string? l;
+                    do {
+                        l = data.ReadLine();
+                        if (l == null) {
+                            if (first) {
+                                yield break;
+                            } else {
+                                throw new EndOfStreamException("reached end of data in the middle of template");
+                            }
+                        }
+                        // skip empty data lines at beginning of template instead of the end
+                        // to avoid having to determine which is the last template line
+                    } while (options.SkipDataGapLines && first && l == "");
+
+                    Match m = r.Match(l);
+                    if (m == null) {
+                        throw new Exception("line doesn't match");
+                    }
+                    foreach (var groupName in tl.CaptureNames) {
+                        var g = m.Groups[groupName];
+                        dict[groupName] = g.Success ? g.Value : null;
+                    }
+                }
+                yield return dict;
+            } while (multiple);
+        }
+
         public async IAsyncEnumerable<IDictionary<string, string?>> ProcessRecordsAsync(TextReader data, bool multiple, TemplateOptions? options = null) {
             if (options == null) {
                 options = TemplateOptions.Default;
             }
             do {
                 var dict = new Dictionary<string, string?>();
-                foreach ((var _, var r, var first) in FilterTemplate(options)) {
+                foreach ((var tl, var r, var first) in FilterTemplate(options)) {
                     string? l;
                     do {
                         l = await data.ReadLineAsync();
@@ -55,7 +103,7 @@ namespace ReverseTemplate.Engine {
                     if (m == null) {
                         throw new Exception("line doesn't match");
                     }
-                    foreach (var groupName in r.GetGroupNames()) {
+                    foreach (var groupName in tl.CaptureNames) {
                         var g = m.Groups[groupName];
                         dict[groupName] = g.Success ? g.Value : null;
                     }
