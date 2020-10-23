@@ -5,7 +5,9 @@ VisualStudioVersion = 16.0.30523.141
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ReverseTemplate", "ReverseTemplate.csproj", "{5D5FC2DF-E58F-46A7-BFAF-1BC471D0AC9A}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ReverseTemplate.Tests", "ReverseTemplate.Tests\ReverseTemplate.Tests.csproj", "{7B6B6933-F5A1-413F-88FD-1D05AE479F41}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ReverseTemplate.Tests", "ReverseTemplate.Tests\ReverseTemplate.Tests.csproj", "{7B6B6933-F5A1-413F-88FD-1D05AE479F41}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ReverseTemplate.PSModule", "ReverseTemplate.PSModule\ReverseTemplate.PSModule.csproj", "{14A72BEC-64AF-4DB5-A3B9-7CD56904D7C8}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -21,6 +23,10 @@ Global
 		{7B6B6933-F5A1-413F-88FD-1D05AE479F41}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{7B6B6933-F5A1-413F-88FD-1D05AE479F41}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{7B6B6933-F5A1-413F-88FD-1D05AE479F41}.Release|Any CPU.Build.0 = Release|Any CPU
+		{14A72BEC-64AF-4DB5-A3B9-7CD56904D7C8}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{14A72BEC-64AF-4DB5-A3B9-7CD56904D7C8}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{14A72BEC-64AF-4DB5-A3B9-7CD56904D7C8}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{14A72BEC-64AF-4DB5-A3B9-7CD56904D7C8}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

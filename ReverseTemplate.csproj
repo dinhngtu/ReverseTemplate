@@ -7,8 +7,11 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Remove="ReverseTemplate.PSModule\**" />
     <Compile Remove="ReverseTemplate.Tests\**" />
+    <EmbeddedResource Remove="ReverseTemplate.PSModule\**" />
     <EmbeddedResource Remove="ReverseTemplate.Tests\**" />
+    <None Remove="ReverseTemplate.PSModule\**" />
     <None Remove="ReverseTemplate.Tests\**" />
   </ItemGroup>
 
