@@ -28,7 +28,7 @@ namespace ReverseTemplate.Engine {
             CaptureNames = Sections.OfType<CaptureSection>().Where(x => x.VarName != null).Select(x => x.VarName!).ToList();
             RegexString = ToRegex(Sections);
             RegexObject = new Regex(RegexString);
-            AllCaptureGroups = RegexObject.GetGroupNames().Where(x => Regex.IsMatch(x, "^[^0-9]*$")).ToList();
+            AllCaptureGroups = RegexObject.GetGroupNames().Where(x => !Regex.IsMatch(x, "^[0-9]*$")).ToList();
         }
 
         public CachedTemplateLine(IEnumerable<LineSection> sections) : this(new TemplateLine(sections)) {
