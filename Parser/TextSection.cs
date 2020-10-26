@@ -9,7 +9,7 @@ namespace ReverseTemplate.Parser {
 
         public string Text { get; }
 
-        public override string ToRegex() => Regex.Escape(Text);
+        public override string ToRegex() => $"(?:{Regex.Escape(Text)})";
 
         public override string ToString() => Text;
     }
