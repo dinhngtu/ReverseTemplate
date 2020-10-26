@@ -18,13 +18,16 @@ namespace ReverseTemplate.PSModule {
         public bool Multiple { get; set; }
 
         protected override void EndProcessing() {
-            using var templateFile = File.OpenText(SessionState.Path.GetUnresolvedProviderPathFromPSPath(TemplatePath));
-            var engine = new Template(templateFile);
+            var engine = Template.Create(SessionState.Path.GetUnresolvedProviderPathFromPSPath(TemplatePath));
+            WriteVerbose(engine.FileNameTemplateLine.ToRegex());
+            foreach (var line in engine.TemplateLines) {
+                WriteVerbose(line.ToRegex());
+            }
             foreach (var pattern in Path) {
                 foreach (var filename in SessionState.Path.GetResolvedProviderPathFromPSPath(pattern, out var provider)) {
                     if (provider.ImplementingType == typeof(FileSystemProvider)) {
-                        using var file = File.OpenText(filename);
-                        foreach (var record in engine.ProcessRecords(file, Multiple)) {
+                        WriteVerbose(filename);
+                        foreach (var record in engine.ProcessRecords(filename, Multiple)) {
                             var pso = new PSObject();
                             foreach (var kv in record) {
                                 pso.Members.Add(new PSNoteProperty(kv.Key, kv.Value));

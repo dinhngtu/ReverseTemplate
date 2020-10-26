@@ -37,7 +37,7 @@ namespace ReverseTemplate.Parser {
 
         static TextParser<Pattern> FormatPart { get; } =
             from _pct in Character.EqualTo('%')
-            from fmt in Character.Letter
+            from fmt in Character.AnyChar
             select new FormatPattern(fmt.ToString()) as Pattern;
 
         static TextParser<TextSpan> VarNamePart { get; } = Character.EqualTo('=').IgnoreThen(VarName);
