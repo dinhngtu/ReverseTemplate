@@ -10,19 +10,19 @@ using System.Threading.Tasks;
 
 namespace ReverseTemplate.Engine {
     public class Template {
-        private List<TemplateLine> _templateLines;
+        private List<CachedTemplateLine> _templateLines;
 
-        public TemplateLine? FileNameTemplateLine { get; private set; }
-        public IReadOnlyList<TemplateLine> TemplateLines => _templateLines.AsReadOnly();
+        public CachedTemplateLine? FileNameTemplateLine { get; private set; }
+        public IReadOnlyList<CachedTemplateLine> TemplateLines => _templateLines.AsReadOnly();
 
-        static IEnumerable<TemplateLine> ParseLines(TextReader reader) {
+        static IEnumerable<CachedTemplateLine> ParseLines(TextReader reader) {
             string? l;
             var lineNum = 0;
             while ((l = reader.ReadLine()) != null) {
                 // output lineNum is 1-indexed
                 lineNum++;
                 if (TemplateParser.TryParse(l, out var tl, out var error, out var pos)) {
-                    yield return tl;
+                    yield return new CachedTemplateLine(tl);
                 } else {
                     var realPos = new Superpower.Model.Position(pos.Absolute, lineNum, pos.Column);
                     throw new ParseException(error, realPos);
@@ -30,9 +30,16 @@ namespace ReverseTemplate.Engine {
             }
         }
 
-        public Template(IEnumerable<TemplateLine> lines, TemplateLine? fileNameTemplateLine = null) {
-            _templateLines = new List<TemplateLine>(lines);
+        public Template(IEnumerable<CachedTemplateLine> lines, CachedTemplateLine? fileNameTemplateLine = null) {
+            _templateLines = new List<CachedTemplateLine>(lines);
             FileNameTemplateLine = fileNameTemplateLine;
+        }
+
+        public Template(
+            IEnumerable<TemplateLine> lines,
+            TemplateLine? fileNameTemplateLine = null) : this(
+                lines.Select(tl => new CachedTemplateLine(tl)),
+                fileNameTemplateLine != null ? new CachedTemplateLine(fileNameTemplateLine) : null) {
         }
 
         public static Template Create(TextReader data) {
@@ -47,10 +54,10 @@ namespace ReverseTemplate.Engine {
                     throw new ParseException(err, pos);
                 }
             }
-            return new Template(ParseLines(templateReader), fntl);
+            return new Template(ParseLines(templateReader), fntl != null ? new CachedTemplateLine(fntl) : null);
         }
 
-        IEnumerable<(TemplateLine line, int index)> FilterTemplate(TemplateOptions options, bool loop = false) {
+        IEnumerable<(CachedTemplateLine line, int index)> FilterTemplate(TemplateOptions options, bool loop = false) {
             do {
                 for (int i = 0; i < _templateLines.Count; i++) {
                     if (options.SkipTrailingTemplateLines && i == _templateLines.Count - 1 && _templateLines[i].Sections.Count == 0) {
@@ -61,14 +68,14 @@ namespace ReverseTemplate.Engine {
             } while (loop);
         }
 
-        IEnumerable<(TemplateLine line, int index)> GetFileNameTemplate() {
+        IEnumerable<(CachedTemplateLine line, int index)> GetFileNameTemplate() {
             if (FileNameTemplateLine == null) {
                 throw new InvalidOperationException("no file name template");
             }
             yield return (FileNameTemplateLine, 0);
         }
 
-        IEnumerable<IDictionary<string, string?>> ProcessRecords(IEnumerable<(TemplateLine line, int index)> templates, TextReader data, bool multiple, TemplateOptions options) {
+        IEnumerable<IDictionary<string, string?>> ProcessRecords(IEnumerable<(CachedTemplateLine line, int index)> templates, TextReader data, bool multiple, TemplateOptions options) {
             do {
                 var dict = new Dictionary<string, string?>();
                 foreach ((var tl, var index) in templates) {
@@ -126,7 +133,7 @@ namespace ReverseTemplate.Engine {
             }
         }
 
-        async IAsyncEnumerable<IDictionary<string, string?>> ProcessRecordsAsync(IEnumerable<(TemplateLine line, int index)> templates, TextReader data, bool multiple, TemplateOptions options) {
+        async IAsyncEnumerable<IDictionary<string, string?>> ProcessRecordsAsync(IEnumerable<(CachedTemplateLine line, int index)> templates, TextReader data, bool multiple, TemplateOptions options) {
             if (options == null) {
                 options = TemplateOptions.Default;
             }

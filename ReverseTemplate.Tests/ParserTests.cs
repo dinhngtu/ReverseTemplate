@@ -1,3 +1,4 @@
+using ReverseTemplate.Engine;
 using System;
 using Xunit;
 
@@ -52,7 +53,7 @@ namespace ReverseTemplate.Tests {
         [Fact]
         public void CaptureNamesTest() {
             var line = "{{/p1/=c1}} aaa {{%f=c2}}";
-            var outLine = AssertParses(line);
+            var outLine = new CachedTemplateLine(AssertParses(line));
             Assert.Equal(2, outLine.CaptureNames.Count);
             Assert.Contains("c1", outLine.CaptureNames);
             Assert.Contains("c2", outLine.CaptureNames);
@@ -104,6 +105,12 @@ namespace ReverseTemplate.Tests {
             var line = "";
             var outLine = AssertParses(line);
             Assert.Empty(outLine.Sections);
+        }
+
+        [Fact]
+        public void TempTest() {
+            var line = @"msg{{%d=msg}}-mps{{%d=mps}}{{/(-m(?<m>[0-9]+)-N(?<N>[0-9]+))?/}}";
+            var outLine = AssertParses(line);
         }
     }
 }
