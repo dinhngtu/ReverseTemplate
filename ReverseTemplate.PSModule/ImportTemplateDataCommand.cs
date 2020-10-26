@@ -1,4 +1,5 @@
-﻿using ReverseTemplate.Engine;
+﻿using Microsoft.PowerShell.Commands;
+using ReverseTemplate.Engine;
 using System;
 using System.Collections;
 using System.IO;
@@ -7,7 +8,7 @@ using System.Management.Automation;
 
 namespace ReverseTemplate.PSModule {
     [Cmdlet(VerbsData.Import, "TemplatedData")]
-    public class ImportTemplateDataCommand : Cmdlet {
+    public class ImportTemplateDataCommand : PSCmdlet {
         [Parameter(Mandatory = true, Position = 0, ValueFromPipeline = true)]
         public string[] Path { get; set; }
 
@@ -17,16 +18,20 @@ namespace ReverseTemplate.PSModule {
         public bool Multiple { get; set; }
 
         protected override void EndProcessing() {
-            using var templateFile = File.OpenText(TemplatePath);
+            using var templateFile = File.OpenText(SessionState.Path.GetUnresolvedProviderPathFromPSPath(TemplatePath));
             var engine = new Template(templateFile);
-            foreach (var filename in Path) {
-                using var file = File.OpenText(filename);
-                foreach (var record in engine.ProcessRecords(file, Multiple)) {
-                    var pso = new PSObject();
-                    foreach (var kv in record) {
-                        pso.Members.Add(new PSNoteProperty(kv.Key, kv.Value));
+            foreach (var pattern in Path) {
+                foreach (var filename in SessionState.Path.GetResolvedProviderPathFromPSPath(pattern, out var provider)) {
+                    if (provider.ImplementingType == typeof(FileSystemProvider)) {
+                        using var file = File.OpenText(filename);
+                        foreach (var record in engine.ProcessRecords(file, Multiple)) {
+                            var pso = new PSObject();
+                            foreach (var kv in record) {
+                                pso.Members.Add(new PSNoteProperty(kv.Key, kv.Value));
+                            }
+                            WriteObject(pso);
+                        }
                     }
-                    WriteObject(pso);
                 }
             }
         }
