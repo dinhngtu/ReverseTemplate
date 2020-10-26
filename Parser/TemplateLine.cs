@@ -2,20 +2,22 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Text.RegularExpressions;
 
 namespace ReverseTemplate.Parser {
     public class TemplateLine {
-        private readonly List<LineSection> _sections;
-        private readonly string _regex;
-        private readonly List<string> _captureNames;
-
-        public IReadOnlyList<LineSection> Sections => _sections.AsReadOnly();
-        public IReadOnlyList<string> CaptureNames => _captureNames.AsReadOnly();
+        public IReadOnlyList<LineSection> Sections { get; }
+        public IReadOnlyList<string> CaptureNames { get; }
+        public string RegexString { get; }
+        public Regex RegexObject { get; }
+        public IReadOnlyList<string> AllCaptureGroups { get; }
 
         public TemplateLine(IEnumerable<LineSection> sections) {
-            _sections = new List<LineSection>(sections);
-            _regex = ToRegex(_sections);
-            _captureNames = _sections.OfType<CaptureSection>().Where(x => x.VarName != null).Select(x => x.VarName!).ToList();
+            Sections = new List<LineSection>(sections);
+            CaptureNames = Sections.OfType<CaptureSection>().Where(x => x.VarName != null).Select(x => x.VarName!).ToList();
+            RegexString = ToRegex(Sections);
+            RegexObject = new Regex(RegexString);
+            AllCaptureGroups = RegexObject.GetGroupNames().Where(x => Regex.IsMatch(x, "^[^0-9]*$")).ToList();
         }
 
         string ToRegex(IEnumerable<LineSection> sections) {
@@ -25,7 +27,5 @@ namespace ReverseTemplate.Parser {
             }
             return sb.ToString();
         }
-
-        public string ToRegex() => _regex;
     }
 }

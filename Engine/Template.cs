@@ -11,10 +11,8 @@ using System.Threading.Tasks;
 namespace ReverseTemplate.Engine {
     public class Template {
         private List<TemplateLine> _templateLines;
-        private List<Regex> _cache;
 
         public TemplateLine? FileNameTemplateLine { get; private set; }
-        public Regex? FileNameRegex { get; private set; }
         public IReadOnlyList<TemplateLine> TemplateLines => _templateLines.AsReadOnly();
 
         static IEnumerable<TemplateLine> ParseLines(TextReader reader) {
@@ -34,9 +32,7 @@ namespace ReverseTemplate.Engine {
 
         public Template(IEnumerable<TemplateLine> lines, TemplateLine? fileNameTemplateLine = null) {
             _templateLines = new List<TemplateLine>(lines);
-            _cache = _templateLines.Select(l => new Regex(l.ToRegex())).ToList();
             FileNameTemplateLine = fileNameTemplateLine;
-            FileNameRegex = FileNameTemplateLine != null ? new Regex(FileNameTemplateLine.ToRegex()) : null;
         }
 
         public static Template Create(TextReader data) {
@@ -54,28 +50,28 @@ namespace ReverseTemplate.Engine {
             return new Template(ParseLines(templateReader), fntl);
         }
 
-        IEnumerable<(TemplateLine line, Regex regex, int index)> FilterTemplate(TemplateOptions options, bool loop = false) {
+        IEnumerable<(TemplateLine line, int index)> FilterTemplate(TemplateOptions options, bool loop = false) {
             do {
                 for (int i = 0; i < _templateLines.Count; i++) {
                     if (options.SkipTrailingTemplateLines && i == _templateLines.Count - 1 && _templateLines[i].Sections.Count == 0) {
                         continue;
                     }
-                    yield return (_templateLines[i], _cache[i], i);
+                    yield return (_templateLines[i], i);
                 }
             } while (loop);
         }
 
-        IEnumerable<(TemplateLine line, Regex regex, int index)> GetFileNameTemplate() {
-            if (FileNameTemplateLine == null || FileNameRegex == null) {
+        IEnumerable<(TemplateLine line, int index)> GetFileNameTemplate() {
+            if (FileNameTemplateLine == null) {
                 throw new InvalidOperationException("no file name template");
             }
-            yield return (FileNameTemplateLine, FileNameRegex, 0);
+            yield return (FileNameTemplateLine, 0);
         }
 
-        IEnumerable<IDictionary<string, string?>> ProcessRecords(IEnumerable<(TemplateLine line, Regex regex, int index)> templates, TextReader data, bool multiple, TemplateOptions options) {
+        IEnumerable<IDictionary<string, string?>> ProcessRecords(IEnumerable<(TemplateLine line, int index)> templates, TextReader data, bool multiple, TemplateOptions options) {
             do {
                 var dict = new Dictionary<string, string?>();
-                foreach ((var tl, var r, var index) in templates) {
+                foreach ((var tl, var index) in templates) {
                     string? l;
                     do {
                         l = data.ReadLine();
@@ -90,11 +86,11 @@ namespace ReverseTemplate.Engine {
                         // to avoid having to determine which is the last template line
                     } while (options.SkipDataGapLines && index == 0 && l == "");
 
-                    Match m = r.Match(l);
+                    Match m = tl.RegexObject.Match(l);
                     if (m == null) {
                         throw new Exception("line doesn't match");
                     }
-                    foreach (var groupName in tl.CaptureNames) {
+                    foreach (var groupName in options.UseAllGroupNames ? tl.AllCaptureGroups : tl.CaptureNames) {
                         var g = m.Groups[groupName];
                         dict[groupName] = g.Success ? g.Value : null;
                     }
@@ -130,13 +126,13 @@ namespace ReverseTemplate.Engine {
             }
         }
 
-        async IAsyncEnumerable<IDictionary<string, string?>> ProcessRecordsAsync(IEnumerable<(TemplateLine line, Regex regex, int index)> templates, TextReader data, bool multiple, TemplateOptions options) {
+        async IAsyncEnumerable<IDictionary<string, string?>> ProcessRecordsAsync(IEnumerable<(TemplateLine line, int index)> templates, TextReader data, bool multiple, TemplateOptions options) {
             if (options == null) {
                 options = TemplateOptions.Default;
             }
             do {
                 var dict = new Dictionary<string, string?>();
-                foreach ((var tl, var r, var index) in templates) {
+                foreach ((var tl, var index) in templates) {
                     string? l;
                     do {
                         l = await data.ReadLineAsync();
@@ -151,11 +147,11 @@ namespace ReverseTemplate.Engine {
                         // to avoid having to determine which is the last template line
                     } while (options.SkipDataGapLines && index == 0 && l == "");
 
-                    Match m = r.Match(l);
+                    Match m = tl.RegexObject.Match(l);
                     if (m == null) {
                         throw new Exception("line doesn't match");
                     }
-                    foreach (var groupName in tl.CaptureNames) {
+                    foreach (var groupName in options.UseAllGroupNames ? tl.AllCaptureGroups : tl.CaptureNames) {
                         var g = m.Groups[groupName];
                         dict[groupName] = g.Success ? g.Value : null;
                     }

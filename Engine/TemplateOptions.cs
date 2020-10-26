@@ -3,6 +3,7 @@
         public static TemplateOptions Default { get; } = new TemplateOptions() {
             SkipTrailingTemplateLines = true,
             SkipDataGapLines = true,
+            UseAllGroupNames = true,
         };
 
         public bool SkipTrailingTemplateLines { get; set; }
@@ -13,6 +14,6 @@
         /// </summary>
         public bool SkipDataGapLines { get; set; }
 
-        public bool CaptureIgnoresSurroundingSpaces { get; set; }
+        public bool UseAllGroupNames { get; set; }
     }
 }

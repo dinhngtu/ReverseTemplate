@@ -19,9 +19,10 @@ namespace ReverseTemplate.PSModule {
 
         protected override void EndProcessing() {
             var engine = Template.Create(SessionState.Path.GetUnresolvedProviderPathFromPSPath(TemplatePath));
-            WriteVerbose(engine.FileNameTemplateLine.ToRegex());
+            WriteVerbose(engine.FileNameTemplateLine.RegexString);
             foreach (var line in engine.TemplateLines) {
-                WriteVerbose(line.ToRegex());
+                WriteVerbose(line.RegexString);
+                WriteVerbose(string.Join(";", line.AllCaptureGroups));
             }
             foreach (var pattern in Path) {
                 foreach (var filename in SessionState.Path.GetResolvedProviderPathFromPSPath(pattern, out var provider)) {
