@@ -15,6 +15,7 @@ namespace ReverseTemplate.PSModule {
         [Parameter(Mandatory = true)]
         public string TemplatePath { get; set; }
 
+        [Parameter()]
         public bool Multiple { get; set; }
 
         protected override void EndProcessing() {
