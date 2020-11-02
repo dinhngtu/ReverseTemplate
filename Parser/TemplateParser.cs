@@ -23,14 +23,18 @@ namespace ReverseTemplate.Parser {
     public static class TemplateParser {
         static TextParser<TextSpan> VarName { get; } = Span.MatchedBy(Character.LetterOrDigit.Or(Character.EqualTo('_')).AtLeastOnce());
 
+        static TextParser<char> Escape { get; } = Character.EqualTo('\\');
+        static TextParser<char> Escapable { get; } = Character.In('\\', '/');
+        static TextParser<char> NotEscapable { get; } = Character.ExceptIn('\\', '/');
+
         static TextParser<char> RegexChars { get; } =
-            Character.ExceptIn('\\', '/')
-                .Or(Character.EqualTo('\\').IgnoreThen(Character.In('\\', '/')).Try())
-                .Or(Character.EqualTo('\\'));
+            NotEscapable
+                .Or(Escape.IgnoreThen(Escapable).Try())
+                .Or(Escape);
 
         static TextParser<Pattern> RegexPart { get; } =
             from _beginSlash in Character.EqualTo('/')
-            from regex in Span.MatchedBy(RegexChars.Many())
+            from regex in Span.MatchedBy(RegexChars.IgnoreMany())
             from _endSlash in Character.EqualTo('/')
             select new RegexPattern(regex.ToStringValue()) as Pattern;
 
@@ -48,22 +52,21 @@ namespace ReverseTemplate.Parser {
 
         static TextParser<char> LeftBracket { get; } = Character.EqualTo('{');
         static TextParser<char> RightBracket { get; } = Character.EqualTo('}');
-        static TextParser<char> NonLeftBracket { get; } = Character.ExceptIn('{');
-        static TextParser<char> NonRightBracket { get; } = Character.ExceptIn('}');
+        static TextParser<char> NotLeftBracket { get; } = Character.ExceptIn('{');
+        static TextParser<char> NotRightBracket { get; } = Character.ExceptIn('}');
         static TextParser<char> Brackets { get; } = Character.In('{', '}');
-        static TextParser<char> NonBrackets { get; } = Character.ExceptIn('{', '}');
+        static TextParser<char> NotBrackets { get; } = Character.ExceptIn('{', '}');
 
         static TextParser<Unit> RawTextPart { get; } =
-            NonBrackets.Value(Unit.Value)
+            NotBrackets.Value(Unit.Value)
             .Or(Brackets.AtEnd().Value(Unit.Value).Try())
-            .Or(LeftBracket.IgnoreThen(NonLeftBracket).Value(Unit.Value).Try())
-            .Or(RightBracket.IgnoreThen(NonRightBracket).Value(Unit.Value).Try())
-            .IgnoreMany();
+            .Or(LeftBracket.IgnoreThen(NotLeftBracket).Value(Unit.Value).Try())
+            .Or(RightBracket.IgnoreThen(NotRightBracket).Value(Unit.Value).Try());
 
         static Tokenizer<TemplateToken> TemplateTokenizer { get; } = new TokenizerBuilder<TemplateToken>()
             .Match(Span.EqualTo("{{"), TemplateToken.DoubleLeftBracket)
             .Match(Span.EqualTo("}}"), TemplateToken.DoubleRightBracket)
-            .Match(RawTextPart, TemplateToken.RawText)
+            .Match(RawTextPart.IgnoreMany(), TemplateToken.RawText)
             .Build();
 
         static TokenListParser<TemplateToken, LineSection> CaptureToken { get; } =
@@ -74,8 +77,12 @@ namespace ReverseTemplate.Parser {
                     return CaptureBlock.Parse(string.Join("", texts)) as LineSection;
                 });
 
+        static TokenListParser<TemplateToken, LineSection> TextToken { get; } =
+            Token.EqualTo(TemplateToken.RawText)
+                .Select(t => new TextSection(t.ToStringValue()) as LineSection);
+
         static TokenListParser<TemplateToken, LineSection[]> TemplateLineToken { get; } =
-            CaptureToken.Or(Token.EqualTo(TemplateToken.RawText).Select(t => new TextSection(string.Join("", t.ToStringValue())) as LineSection)).Many().AtEnd();
+            CaptureToken.Or(TextToken).Many().AtEnd();
 
         public static bool TryParse(string line, [NotNullWhen(true)] out TemplateLine? outLine, out string? error, out Position errorPosition) {
             var tokens = TemplateTokenizer.TryTokenize(line);
