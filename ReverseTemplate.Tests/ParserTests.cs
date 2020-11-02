@@ -113,5 +113,12 @@ namespace ReverseTemplate.Tests {
             var outLine = AssertParses(line);
             outLine.AssertIsCapture(0, @"{{/asd\/asd/}}");
         }
+
+        [Fact]
+        public void RegexEscapeTest() {
+            var line = @"{{/asd\+/}}";
+            var outLine = AssertParses(line);
+            outLine.AssertIsCapture(0, @"{{/asd\+/}}");
+        }
     }
 }

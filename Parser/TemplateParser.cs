@@ -25,9 +25,8 @@ namespace ReverseTemplate.Parser {
 
         static TextParser<char> RegexChars { get; } =
             Character.ExceptIn('\\', '/')
-                .Or(Character.EqualTo('\\').IgnoreThen(
-                    Character.EqualTo('\\')
-                        .Or(Character.EqualTo('/'))));
+                .Or(Character.EqualTo('\\').IgnoreThen(Character.In('\\', '/')).Try())
+                .Or(Character.EqualTo('\\'));
 
         static TextParser<Pattern> RegexPart { get; } =
             from _beginSlash in Character.EqualTo('/')
