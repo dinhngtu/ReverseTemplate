@@ -108,9 +108,10 @@ namespace ReverseTemplate.Tests {
         }
 
         [Fact]
-        public void TempTest() {
-            var line = @"msg{{%d=msg}}-mps{{%d=mps}}{{/(-m(?<m>[0-9]+)-N(?<N>[0-9]+))?/}}";
+        public void EscapeTest() {
+            var line = @"{{/asd\/asd/}}";
             var outLine = AssertParses(line);
+            outLine.AssertIsCapture(0, @"{{/asd\/asd/}}");
         }
     }
 }

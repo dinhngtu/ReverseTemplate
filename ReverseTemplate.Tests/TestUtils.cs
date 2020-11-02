@@ -1,4 +1,4 @@
-﻿using ReverseTemplate.Engine;
+using ReverseTemplate.Engine;
 using ReverseTemplate.Parser;
 using Superpower.Model;
 using System;
@@ -21,22 +21,26 @@ namespace ReverseTemplate.Tests {
             Assert.False(TemplateParser.TryParse(line, out _, out _, out _));
         }
 
-        public static void AssertIsText(this TemplateLine line, int idx) {
+        public static TextSection AssertIsText(this TemplateLine line, int idx) {
             Assert.IsType<TextSection>(line.Sections[idx]);
+            return (TextSection)line.Sections[idx];
         }
 
-        public static void AssertIsText(this TemplateLine line, int idx, string content) {
+        public static TextSection AssertIsText(this TemplateLine line, int idx, string content) {
             Assert.IsType<TextSection>(line.Sections[idx]);
             Assert.Equal(content, line.Sections[idx].ToString());
+            return (TextSection)line.Sections[idx];
         }
 
-        public static void AssertIsCapture(this TemplateLine line, int idx) {
+        public static LineSection AssertIsCapture(this TemplateLine line, int idx) {
             Assert.IsType<CaptureSection>(line.Sections[idx]);
+            return (CaptureSection)line.Sections[idx];
         }
 
-        public static void AssertIsCapture(this TemplateLine line, int idx, string text) {
+        public static LineSection AssertIsCapture(this TemplateLine line, int idx, string text) {
             Assert.IsType<CaptureSection>(line.Sections[idx]);
             Assert.Equal(text, line.Sections[idx].ToString());
+            return (CaptureSection)line.Sections[idx];
         }
 
         static IEnumerable<TemplateLine> ParseLines(TextReader reader) {
