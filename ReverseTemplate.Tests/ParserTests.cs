@@ -1,4 +1,5 @@
 using ReverseTemplate.Engine;
+using ReverseTemplate.Parser;
 using System;
 using Xunit;
 
@@ -12,7 +13,9 @@ namespace ReverseTemplate.Tests {
             var outLine = AssertParses(line);
             Assert.Equal(3, outLine.Sections.Count);
             outLine.AssertIsText(0, "aaa ");
-            outLine.AssertIsCapture(1, "{{/pattern/=capture}}");
+            var capture = outLine.AssertIsCapture(1);
+            Assert.IsType<RegexPattern>(capture.Pattern);
+            Assert.Equal("capture", capture.VarName);
             outLine.AssertIsText(2, " bbb");
         }
 
@@ -29,15 +32,17 @@ namespace ReverseTemplate.Tests {
             var line = "{{/pattern/=capture}}";
             var outLine = AssertParses(line);
             Assert.Single(outLine.Sections);
-            outLine.AssertIsCapture(0, "{{/pattern/=capture}}");
+            var capture = outLine.AssertIsCapture(0);
+            Assert.IsType<RegexPattern>(capture.Pattern);
+            Assert.Equal("capture", capture.VarName);
         }
 
         [Fact]
         public void NonCaptureTest() {
             var line = "{{/pattern/}}";
             var outLine = AssertParses(line);
-            Assert.Single(outLine.Sections);
-            outLine.AssertIsCapture(0, "{{/pattern/}}");
+            var capture = Assert.IsType<CaptureSection>(Assert.Single(outLine.Sections));
+            Assert.IsType<RegexPattern>(capture.Pattern);
         }
 
         [Fact]
@@ -64,8 +69,13 @@ namespace ReverseTemplate.Tests {
             var line = "{{/p1/=c1}}{{%f=c2}}";
             var outLine = AssertParses(line);
             Assert.Equal(2, outLine.Sections.Count);
-            outLine.AssertIsCapture(0, "{{/p1/=c1}}");
-            outLine.AssertIsCapture(1, "{{%f=c2}}");
+            var c1 = outLine.AssertIsCapture(0);
+            Assert.IsType<RegexPattern>(c1.Pattern);
+            Assert.Equal("c1", c1.VarName);
+            var c2 = outLine.AssertIsCapture(1);
+            var f2 = Assert.IsType<FormatPattern>(c2.Pattern);
+            Assert.Equal("f", f2.Format);
+            Assert.Equal("c2", c2.VarName);
         }
 
         [Fact]
@@ -111,14 +121,16 @@ namespace ReverseTemplate.Tests {
         public void EscapeTest() {
             var line = @"{{/asd\/asd/}}";
             var outLine = AssertParses(line);
-            outLine.AssertIsCapture(0, @"{{/asd\/asd/}}");
+            var capture = outLine.AssertIsCapture(0);
+            Assert.Equal(@"(?:asd\/asd)", capture.ToRegex());
         }
 
         [Fact]
         public void RegexEscapeTest() {
             var line = @"{{/asd\+/}}";
             var outLine = AssertParses(line);
-            outLine.AssertIsCapture(0, @"{{/asd\+/}}");
+            var capture = outLine.AssertIsCapture(0);
+            Assert.Equal(@"(?:asd\+)", capture.ToRegex());
         }
     }
 }

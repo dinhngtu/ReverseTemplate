@@ -32,14 +32,8 @@ namespace ReverseTemplate.Tests {
             return (TextSection)line.Sections[idx];
         }
 
-        public static LineSection AssertIsCapture(this TemplateLine line, int idx) {
+        public static CaptureSection AssertIsCapture(this TemplateLine line, int idx) {
             Assert.IsType<CaptureSection>(line.Sections[idx]);
-            return (CaptureSection)line.Sections[idx];
-        }
-
-        public static LineSection AssertIsCapture(this TemplateLine line, int idx, string text) {
-            Assert.IsType<CaptureSection>(line.Sections[idx]);
-            Assert.Equal(text, line.Sections[idx].ToString());
             return (CaptureSection)line.Sections[idx];
         }
 
