@@ -45,10 +45,13 @@ namespace ReverseTemplate.Parser {
 
         static TextParser<TextSpan> VarNamePart { get; } = Character.EqualTo('=').IgnoreThen(VarName);
 
+        static TextParser<char[]> FlagsPart { get; } = Character.In('?').Many();
+
         static TextParser<CaptureSection> CaptureBlock { get; } =
             from part in RegexPart.Or(FormatPart)
             from capt in VarNamePart.Optional()
-            select new CaptureSection(part, capt?.ToStringValue());
+            from flags in FlagsPart
+            select new CaptureSection(part, capt?.ToStringValue(), flags);
 
         static TextParser<char> LeftBracket { get; } = Character.EqualTo('{');
         static TextParser<char> RightBracket { get; } = Character.EqualTo('}');
