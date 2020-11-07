@@ -1,4 +1,4 @@
-﻿using ReverseTemplate.Parser;
+using ReverseTemplate.Parser;
 using Superpower;
 using System;
 using System.Collections.Generic;
@@ -91,7 +91,7 @@ namespace ReverseTemplate.Engine {
                         }
                         // skip empty data lines at beginning of template instead of the end
                         // to avoid having to determine which is the last template line
-                    } while (options.SkipDataGapLines && index == 0 && l == "");
+                    } while (options.SkipDataGapLines && index == 0 && string.IsNullOrEmpty(l));
 
                     Match m = tl.RegexObject.Match(l);
                     if (m == null) {
@@ -106,21 +106,13 @@ namespace ReverseTemplate.Engine {
             } while (multiple);
         }
 
-        public IEnumerable<IDictionary<string, string?>> ProcessRecords(TextReader data, bool multiple, TemplateOptions? options = null) {
+        public IEnumerable<IDictionary<string, string?>> ProcessRecords(TextReader data, bool multiple, TemplateOptions? options = null, string? relativeFilePath = null) {
             if (options == null) {
                 options = TemplateOptions.Default;
             }
-            return ProcessRecords(FilterTemplate(options), data, multiple, options);
-        }
-
-        public IEnumerable<IDictionary<string, string?>> ProcessRecords(string filename, bool multiple, TemplateOptions? options = null) {
-            if (options == null) {
-                options = TemplateOptions.Default;
-            }
-            using var reader = new StreamReader(filename);
-            var dict = ProcessRecords(reader, multiple, options);
+            var dict = ProcessRecords(FilterTemplate(options), data, multiple, options);
             if (FileNameTemplateLine != null) {
-                var nameData = new StringReader(Path.GetFileName(filename));
+                var nameData = new StringReader(Path.GetFileName(relativeFilePath));
                 var nameRecord = ProcessRecords(GetFileNameTemplate(), nameData, false, TemplateOptions.Default).Single().ToList();
                 foreach (var record in dict) {
                     nameRecord.ForEach(kv => record[kv.Key] = kv.Value);
@@ -152,7 +144,7 @@ namespace ReverseTemplate.Engine {
                         }
                         // skip empty data lines at beginning of template instead of the end
                         // to avoid having to determine which is the last template line
-                    } while (options.SkipDataGapLines && index == 0 && l == "");
+                    } while (options.SkipDataGapLines && index == 0 && string.IsNullOrEmpty(l));
 
                     Match m = tl.RegexObject.Match(l);
                     if (m == null) {
@@ -167,21 +159,13 @@ namespace ReverseTemplate.Engine {
             } while (multiple);
         }
 
-        public IAsyncEnumerable<IDictionary<string, string?>> ProcessRecordsAsync(TextReader data, bool multiple, TemplateOptions? options = null) {
+        public async IAsyncEnumerable<IDictionary<string, string?>> ProcessRecordsAsync(TextReader data, bool multiple, TemplateOptions? options = null, string? relativeFilePath = null) {
             if (options == null) {
                 options = TemplateOptions.Default;
             }
-            return ProcessRecordsAsync(FilterTemplate(options), data, multiple, options);
-        }
-
-        public async IAsyncEnumerable<IDictionary<string, string?>> ProcessRecordsAsync(string filename, bool multiple, TemplateOptions? options = null) {
-            if (options == null) {
-                options = TemplateOptions.Default;
-            }
-            using var reader = new StreamReader(filename);
-            var dict = ProcessRecordsAsync(reader, multiple, options);
+            var dict = ProcessRecordsAsync(FilterTemplate(options), data, multiple, options);
             if (FileNameTemplateLine != null) {
-                var nameData = new StringReader(Path.GetFileName(filename));
+                var nameData = new StringReader(Path.GetFileName(relativeFilePath));
                 var nameDict = ProcessRecordsAsync(GetFileNameTemplate(), nameData, false, TemplateOptions.Default);
                 await foreach (var record in dict) {
                     await foreach (var nameRecord in nameDict) {
