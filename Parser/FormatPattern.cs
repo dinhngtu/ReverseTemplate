@@ -10,6 +10,7 @@ namespace ReverseTemplate.Parser {
             ["*"] = ".*",
             ["s"] = "\\s*",
             ["S"] = "\\s+",
+            ["w"] = "\\w+",
         };
 
         public FormatPattern(string format) {
