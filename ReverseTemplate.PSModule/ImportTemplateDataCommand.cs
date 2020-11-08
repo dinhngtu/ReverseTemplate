@@ -1,5 +1,6 @@
 using Microsoft.PowerShell.Commands;
 using ReverseTemplate.Engine;
+using ReverseTemplate.Parser;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -22,19 +23,24 @@ namespace ReverseTemplate.PSModule {
         [Parameter()]
         public bool Recurse { get; set; } = true;
 
+        void WriteTemplateLine(CachedTemplateLine line) {
+            WriteVerbose(line.RegexString + " <" + string.Join(";", line.AllCaptureGroups) + ">");
+        }
+
         protected override void EndProcessing() {
             var engine = Template.Create(SessionState.Path.GetUnresolvedProviderPathFromPSPath(TemplatePath));
-            WriteVerbose(engine.FileNameTemplateLine.RegexString);
+            WriteTemplateLine(engine.FileNameTemplateLine);
             foreach (var line in engine.TemplateLines) {
-                WriteVerbose(line.RegexString);
-                WriteVerbose(string.Join(";", line.AllCaptureGroups));
+                WriteTemplateLine(line);
             }
             var rootPath = SessionState.Path.GetUnresolvedProviderPathFromPSPath(RootPath);
-            WriteVerbose(rootPath);
+            WriteVerbose("Processing root path " + rootPath);
             var rootDir = new DirectoryInfo(rootPath);
             foreach (var file in rootDir.EnumerateFiles("*", Recurse ? SearchOption.AllDirectories : SearchOption.TopDirectoryOnly)) {
+                var relativeFilePath = file.FullName.Substring(rootDir.FullName.Length);
+                WriteVerbose("Processing file " + relativeFilePath);
                 using var fileText = file.OpenText();
-                foreach (var record in engine.ProcessRecords(fileText, Multiple, relativeFilePath: file.FullName.Substring(rootDir.FullName.Length))) {
+                foreach (var record in engine.ProcessRecords(fileText, Multiple, relativeFilePath: relativeFilePath)) {
                     var pso = new PSObject();
                     foreach (var kv in record) {
                         pso.Members.Add(new PSNoteProperty(kv.Key, kv.Value));
