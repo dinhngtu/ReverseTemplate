@@ -34,7 +34,7 @@ namespace ReverseTemplate.PSModule {
             var rootDir = new DirectoryInfo(rootPath);
             foreach (var file in rootDir.EnumerateFiles("*", Recurse ? SearchOption.AllDirectories : SearchOption.TopDirectoryOnly)) {
                 using var fileText = file.OpenText();
-                foreach (var record in engine.ProcessRecords(fileText, Multiple, relativeFilePath: file.FullName.Substring(rootDir.FullName.Length + 1))) {
+                foreach (var record in engine.ProcessRecords(fileText, Multiple, relativeFilePath: file.FullName.Substring(rootDir.FullName.Length))) {
                     var pso = new PSObject();
                     foreach (var kv in record) {
                         pso.Members.Add(new PSNoteProperty(kv.Key, kv.Value));
