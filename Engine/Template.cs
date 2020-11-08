@@ -112,7 +112,7 @@ namespace ReverseTemplate.Engine {
             }
             var dict = ProcessRecords(FilterTemplate(options), data, multiple, options);
             if (FileNameTemplateLine != null) {
-                var nameData = new StringReader(Path.GetFileName(relativeFilePath));
+                var nameData = new StringReader(relativeFilePath);
                 var nameRecord = ProcessRecords(GetFileNameTemplate(), nameData, false, TemplateOptions.Default).Single().ToList();
                 foreach (var record in dict) {
                     nameRecord.ForEach(kv => record[kv.Key] = kv.Value);
@@ -165,7 +165,7 @@ namespace ReverseTemplate.Engine {
             }
             var dict = ProcessRecordsAsync(FilterTemplate(options), data, multiple, options);
             if (FileNameTemplateLine != null) {
-                var nameData = new StringReader(Path.GetFileName(relativeFilePath));
+                var nameData = new StringReader(relativeFilePath);
                 var nameDict = ProcessRecordsAsync(GetFileNameTemplate(), nameData, false, TemplateOptions.Default);
                 await foreach (var record in dict) {
                     await foreach (var nameRecord in nameDict) {
