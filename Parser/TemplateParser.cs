@@ -77,7 +77,7 @@ namespace ReverseTemplate.Parser {
                 .Between(Token.EqualTo(TemplateToken.DoubleLeftBracket), Token.EqualTo(TemplateToken.DoubleRightBracket))
                 .Select(tokens => {
                     var texts = tokens.Select(x => x.ToStringValue());
-                    return CaptureBlock.Parse(string.Join("", texts)) as LineSection;
+                    return CaptureBlock.Parse(string.Concat(texts)) as LineSection;
                 });
 
         static TokenListParser<TemplateToken, LineSection> TextToken { get; } =
