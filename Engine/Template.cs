@@ -116,8 +116,11 @@ namespace ReverseTemplate.Engine {
             }
             var dict = ProcessRecords(FilterTemplate(options), data, multiple, options);
             if (FileNameTemplateLine != null) {
-                var nameData = new StringReader(relativeFilePath);
-                var nameRecord = ProcessRecords(GetFileNameTemplate(), nameData, false, TemplateOptions.Default).Single().ToList();
+                using var nameData = new StringReader(relativeFilePath);
+                var nameRecord = ProcessRecords(GetFileNameTemplate(), nameData, false, TemplateOptions.Default).SingleOrDefault()?.ToList();
+                if (nameRecord == null) {
+                    yield break;
+                }
                 foreach (var record in dict) {
                     nameRecord.ForEach(kv => record[kv.Key] = kv.Value);
                     yield return record;
@@ -173,19 +176,23 @@ namespace ReverseTemplate.Engine {
             }
             var dict = ProcessRecordsAsync(FilterTemplate(options), data, multiple, options);
             if (FileNameTemplateLine != null) {
-                var nameData = new StringReader(relativeFilePath);
-                var nameDict = ProcessRecordsAsync(GetFileNameTemplate(), nameData, false, TemplateOptions.Default);
+                using var nameData = new StringReader(relativeFilePath);
+                IDictionary<string, string?>? nameDict = null;
+                await foreach (var _nameDict in ProcessRecordsAsync(GetFileNameTemplate(), nameData, false, TemplateOptions.Default)) {
+                    nameDict = _nameDict;
+                    break;
+                }
+                if (nameDict == null) {
+                    yield break;
+                }
+                var nameRecord = nameDict.ToList();
                 await foreach (var record in dict) {
-                    await foreach (var nameRecord in nameDict) {
-                        foreach (var kv in nameRecord) {
-                            record[kv.Key] = kv.Value;
-                            yield return record;
-                        }
-                    }
+                    nameRecord.ForEach(kv => record[kv.Key] = kv.Value);
+                    yield return record;
                 }
             } else {
-                await foreach (var d in dict) {
-                    yield return d;
+                await foreach (var record in dict) {
+                    yield return record;
                 }
             }
         }
