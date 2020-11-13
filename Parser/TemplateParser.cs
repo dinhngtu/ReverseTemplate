@@ -45,7 +45,7 @@ namespace ReverseTemplate.Parser {
 
         static TextParser<TextSpan> VarNamePart { get; } = Character.EqualTo('=').IgnoreThen(VarName);
 
-        static TextParser<char[]> FlagsPart { get; } = Character.In('?').Many();
+        static TextParser<char[]> FlagsPart { get; } = Character.In('?', '<', '>').Many();
 
         static TextParser<CaptureSection> CaptureBlock { get; } =
             from part in RegexPart.Or(FormatPart)

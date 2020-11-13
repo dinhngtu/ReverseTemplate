@@ -12,6 +12,8 @@ namespace ReverseTemplate.Parser {
                 Flags |= f switch
                 {
                     '?' => CaptureFlags.Optional,
+                    '>' => CaptureFlags.SkipDataLineIfNotFound,
+                    '<' => CaptureFlags.SkipTemplateLineIfNotFound,
                     _ => 0,
                 };
             }
