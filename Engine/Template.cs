@@ -79,25 +79,25 @@ namespace ReverseTemplate.Engine {
             do {
                 var dict = new Dictionary<string, string?>();
                 foreach ((var tl, var index) in templates) {
-                    string? l;
+                    Match m;
                     do {
-                        l = data.ReadLine();
-                        if (l == null) {
-                            if (index == 0) {
-                                yield break;
-                            } else {
-                                throw new EndOfStreamException($"reached end of data at template index {index}");
+                        string? l;
+                        do {
+                            l = data.ReadLine();
+                            if (l == null) {
+                                if (index == 0) {
+                                    yield break;
+                                } else {
+                                    throw new EndOfStreamException($"reached end of data at template index {index}");
+                                }
                             }
-                        }
-                        // skip empty data lines at beginning of template instead of the end
-                        // to avoid having to determine which is the last template line
-                    } while (options.SkipDataGapLines && index == 0 && string.IsNullOrEmpty(l));
+                            // skip empty data lines at beginning of template instead of the end
+                            // to avoid having to determine which is the last template line
+                        } while (options.SkipDataGapLines && index == 0 && string.IsNullOrEmpty(l));
 
-                    Match m = tl.RegexObject.Match(l);
-                    var forwardSections = tl.Sections.OfType<CaptureSection>().Where(x => x.Flags.HasFlag(CaptureFlags.SkipDataLineIfNotFound));
-                    if (forwardSections.Any(x => !m.Groups[x.VarName].Success)) {
-                        continue;
-                    }
+                        m = tl.RegexObject.Match(l);
+                    } while (tl.ForwardCaptureNames.Any(x => !m.Groups[x].Success));
+
                     if (m == null) {
                         throw new Exception("line doesn't match");
                     }
@@ -139,25 +139,25 @@ namespace ReverseTemplate.Engine {
             do {
                 var dict = new Dictionary<string, string?>();
                 foreach ((var tl, var index) in templates) {
-                    string? l;
+                    Match m;
                     do {
-                        l = await data.ReadLineAsync();
-                        if (l == null) {
-                            if (index == 0) {
-                                yield break;
-                            } else {
-                                throw new EndOfStreamException($"reached end of data at template index {index}");
+                        string? l;
+                        do {
+                            l = await data.ReadLineAsync();
+                            if (l == null) {
+                                if (index == 0) {
+                                    yield break;
+                                } else {
+                                    throw new EndOfStreamException($"reached end of data at template index {index}");
+                                }
                             }
-                        }
-                        // skip empty data lines at beginning of template instead of the end
-                        // to avoid having to determine which is the last template line
-                    } while (options.SkipDataGapLines && index == 0 && string.IsNullOrEmpty(l));
+                            // skip empty data lines at beginning of template instead of the end
+                            // to avoid having to determine which is the last template line
+                        } while (options.SkipDataGapLines && index == 0 && string.IsNullOrEmpty(l));
 
-                    Match m = tl.RegexObject.Match(l);
-                    var forwardSections = tl.Sections.OfType<CaptureSection>().Where(x => x.Flags.HasFlag(CaptureFlags.SkipDataLineIfNotFound));
-                    if (forwardSections.Any(x => !m.Groups[x.VarName].Success)) {
-                        continue;
-                    }
+                        m = tl.RegexObject.Match(l);
+                    } while (tl.ForwardCaptureNames.Any(x => !m.Groups[x].Success));
+
                     if (m == null) {
                         throw new Exception("line doesn't match");
                     }
