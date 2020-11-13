@@ -94,7 +94,7 @@ namespace ReverseTemplate.Engine {
                     } while (options.SkipDataGapLines && index == 0 && string.IsNullOrEmpty(l));
 
                     Match m = tl.RegexObject.Match(l);
-                    var forwardSections = tl.TemplateLine.Sections.OfType<CaptureSection>().Where(x => x.Flags.HasFlag(CaptureFlags.SkipDataLineIfNotFound));
+                    var forwardSections = tl.Sections.OfType<CaptureSection>().Where(x => x.Flags.HasFlag(CaptureFlags.SkipDataLineIfNotFound));
                     if (forwardSections.Any(x => !m.Groups[x.VarName].Success)) {
                         continue;
                     }
@@ -154,7 +154,7 @@ namespace ReverseTemplate.Engine {
                     } while (options.SkipDataGapLines && index == 0 && string.IsNullOrEmpty(l));
 
                     Match m = tl.RegexObject.Match(l);
-                    var forwardSections = tl.TemplateLine.Sections.OfType<CaptureSection>().Where(x => x.Flags.HasFlag(CaptureFlags.SkipDataLineIfNotFound));
+                    var forwardSections = tl.Sections.OfType<CaptureSection>().Where(x => x.Flags.HasFlag(CaptureFlags.SkipDataLineIfNotFound));
                     if (forwardSections.Any(x => !m.Groups[x.VarName].Success)) {
                         continue;
                     }
