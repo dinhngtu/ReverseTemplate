@@ -8,8 +8,10 @@ using System.Threading.Tasks;
 
 namespace ReverseTemplate.Engine {
     public class CachedTemplateLine {
+        static int uniqueCounter = 0;
+
         public TemplateLine TemplateLine { get; }
-        public IReadOnlyList<LineSection> Sections => TemplateLine.Sections;
+        public IReadOnlyList<LineSection> Sections { get; }
         public IReadOnlyList<string> CaptureNames { get; }
         public string RegexString { get; }
         public Regex RegexObject { get; }
@@ -25,6 +27,14 @@ namespace ReverseTemplate.Engine {
 
         public CachedTemplateLine(TemplateLine tl) {
             TemplateLine = tl;
+            Sections = tl.Sections.Select(x => {
+                if (x is CaptureSection cs && cs.VarName == null) {
+                    if (cs.Flags.HasFlag(CaptureFlags.SkipDataLineIfNotFound) || cs.Flags.HasFlag(CaptureFlags.SkipTemplateLineIfNotFound)) {
+                        return new CaptureSection(cs.Pattern, $"__ctl{uniqueCounter++}", cs.Flags);
+                    }
+                }
+                return x;
+            }).ToList();
             CaptureNames = Sections.OfType<CaptureSection>().Where(x => x.VarName != null).Select(x => x.VarName!).ToList();
             RegexString = ToRegex(Sections);
             RegexObject = new Regex(RegexString);
