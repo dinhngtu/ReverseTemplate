@@ -133,9 +133,6 @@ namespace ReverseTemplate.Engine {
         }
 
         async IAsyncEnumerable<IDictionary<string, string?>> ProcessRecordsAsync(IEnumerable<(CachedTemplateLine line, int index)> templates, TextReader data, bool multiple, TemplateOptions options) {
-            if (options == null) {
-                options = TemplateOptions.Default;
-            }
             do {
                 var dict = new Dictionary<string, string?>();
                 foreach ((var tl, var index) in templates) {
