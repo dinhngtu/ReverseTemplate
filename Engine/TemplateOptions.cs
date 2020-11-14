@@ -1,4 +1,6 @@
-﻿namespace ReverseTemplate.Engine {
+// SPDX-License-Identifier: GPL-3.0-only
+
+namespace ReverseTemplate.Engine {
     public class TemplateOptions {
         public static TemplateOptions Default { get; } = new TemplateOptions() {
             SkipTrailingTemplateLines = true,

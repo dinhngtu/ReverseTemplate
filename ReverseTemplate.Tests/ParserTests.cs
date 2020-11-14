@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0-only
+
 using ReverseTemplate.Engine;
 using ReverseTemplate.Parser;
 using System;
