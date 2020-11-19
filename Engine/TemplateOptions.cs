@@ -6,6 +6,7 @@ namespace ReverseTemplate.Engine {
             SkipTrailingTemplateLines = true,
             SkipDataGapLines = true,
             UseAllGroupNames = true,
+            WhiteSpaceOnlyLinesAreEmpty = true,
         };
 
         public bool SkipTrailingTemplateLines { get; set; }
@@ -17,5 +18,7 @@ namespace ReverseTemplate.Engine {
         public bool SkipDataGapLines { get; set; }
 
         public bool UseAllGroupNames { get; set; }
+
+        public bool WhiteSpaceOnlyLinesAreEmpty { get; set; }
     }
 }

@@ -95,7 +95,7 @@ namespace ReverseTemplate.Engine {
                             }
                             // skip empty data lines at beginning of template instead of the end
                             // to avoid having to determine which is the last template line
-                        } while (options.SkipDataGapLines && index == 0 && string.IsNullOrEmpty(l));
+                        } while (options.SkipDataGapLines && index == 0 && (options.WhiteSpaceOnlyLinesAreEmpty ? string.IsNullOrWhiteSpace(l) : string.IsNullOrEmpty(l)));
 
                         m = tl.RegexObject.Match(l);
                     } while (tl.ForwardCaptureNames.Any(x => !m.Groups[x].Success));
@@ -152,7 +152,7 @@ namespace ReverseTemplate.Engine {
                             }
                             // skip empty data lines at beginning of template instead of the end
                             // to avoid having to determine which is the last template line
-                        } while (options.SkipDataGapLines && index == 0 && string.IsNullOrEmpty(l));
+                        } while (options.SkipDataGapLines && index == 0 && (options.WhiteSpaceOnlyLinesAreEmpty ? string.IsNullOrWhiteSpace(l) : string.IsNullOrEmpty(l)));
 
                         m = tl.RegexObject.Match(l);
                     } while (tl.ForwardCaptureNames.Any(x => !m.Groups[x].Success));
