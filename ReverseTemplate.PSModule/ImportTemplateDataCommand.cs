@@ -31,7 +31,9 @@ namespace ReverseTemplate.PSModule {
 
         protected override void EndProcessing() {
             var engine = Template.Create(SessionState.Path.GetUnresolvedProviderPathFromPSPath(TemplatePath));
-            WriteTemplateLine(engine.FileNameTemplateLine);
+            if (engine.FileNameTemplateLine != null) {
+                WriteTemplateLine(engine.FileNameTemplateLine);
+            }
             foreach (var line in engine.TemplateLines) {
                 WriteTemplateLine(line);
             }
