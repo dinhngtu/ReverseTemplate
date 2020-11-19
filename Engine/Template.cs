@@ -19,15 +19,16 @@ namespace ReverseTemplate.Engine {
 
         static IEnumerable<CachedTemplateLine> ParseLines(TextReader reader) {
             string? l;
-            var lineNum = 0;
+            // output lineNum is 1-indexed
+            var lineNum = 1;
             while ((l = reader.ReadLine()) != null) {
-                // output lineNum is 1-indexed
                 lineNum++;
                 if (TemplateParser.TryParse(l, out var tl, out var error, out var pos)) {
                     yield return new CachedTemplateLine(tl);
                 } else {
                     var realPos = new Superpower.Model.Position(pos.Absolute, lineNum, pos.Column);
-                    throw new ParseException(error, realPos);
+                    var realError = Regex.Replace(error, @"([^()]*)\(.*?\)", @"$1 " + realPos.ToString().Replace("$", "$$"));
+                    throw new ParseException(realError, realPos);
                 }
             }
         }

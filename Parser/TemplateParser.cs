@@ -90,26 +90,33 @@ namespace ReverseTemplate.Parser {
             CaptureToken.Or(TextToken).Many().AtEnd();
 
         public static bool TryParse(string line, [NotNullWhen(true)] out TemplateLine? outLine, out string? error, out Position errorPosition) {
-            var tokens = TemplateTokenizer.TryTokenize(line);
-            if (!tokens.HasValue) {
+            try {
+                var tokens = TemplateTokenizer.TryTokenize(line);
+                if (!tokens.HasValue) {
+                    outLine = null;
+                    error = tokens.ErrorMessage;
+                    errorPosition = tokens.ErrorPosition;
+                    return false;
+                }
+
+                var parsed = TemplateLineToken.TryParse(tokens.Value);
+                if (!parsed.HasValue) {
+                    outLine = null;
+                    error = parsed.ErrorMessage;
+                    errorPosition = parsed.ErrorPosition;
+                    return false;
+                }
+
+                outLine = new TemplateLine(parsed.Value);
+                error = null;
+                errorPosition = Position.Empty;
+                return true;
+            } catch (ParseException ex) {
                 outLine = null;
-                error = tokens.ErrorMessage;
-                errorPosition = tokens.ErrorPosition;
+                error = ex.Message;
+                errorPosition = ex.ErrorPosition;
                 return false;
             }
-
-            var parsed = TemplateLineToken.TryParse(tokens.Value);
-            if (!parsed.HasValue) {
-                outLine = null;
-                error = parsed.ErrorMessage;
-                errorPosition = parsed.ErrorPosition;
-                return false;
-            }
-
-            outLine = new TemplateLine(parsed.Value);
-            error = null;
-            errorPosition = Position.Empty;
-            return true;
         }
     }
 }
