@@ -119,19 +119,21 @@ namespace ReverseTemplate.Engine {
             if (options == null) {
                 options = TemplateOptions.Default;
             }
-            var dict = ProcessRecords(FilterTemplate(options), data, multiple, options);
+            var records = ProcessRecords(FilterTemplate(options), data, multiple, options);
             if (FileNameTemplateLine != null) {
                 using var nameData = new StringReader(relativeFilePath);
-                var nameRecord = ProcessRecords(GetFileNameTemplate(), nameData, false, TemplateOptions.Default).SingleOrDefault()?.ToList();
-                if (nameRecord == null) {
+                List<KeyValuePair<string, string?>> nameRecord;
+                try {
+                    nameRecord = ProcessRecords(GetFileNameTemplate(), nameData, false, TemplateOptions.Default).Single().ToList();
+                } catch {
                     yield break;
                 }
-                foreach (var record in dict) {
+                foreach (var record in records) {
                     nameRecord.ForEach(kv => record[kv.Key] = kv.Value);
                     yield return record;
                 }
             } else {
-                foreach (var record in dict) {
+                foreach (var record in records) {
                     yield return record;
                 }
             }
@@ -178,24 +180,21 @@ namespace ReverseTemplate.Engine {
             if (options == null) {
                 options = TemplateOptions.Default;
             }
-            var dict = ProcessRecordsAsync(FilterTemplate(options), data, multiple, options);
+            var records = ProcessRecordsAsync(FilterTemplate(options), data, multiple, options);
             if (FileNameTemplateLine != null) {
                 using var nameData = new StringReader(relativeFilePath);
-                IDictionary<string, string?>? nameDict = null;
-                await foreach (var _nameDict in ProcessRecordsAsync(GetFileNameTemplate(), nameData, false, TemplateOptions.Default)) {
-                    nameDict = _nameDict;
-                    break;
-                }
-                if (nameDict == null) {
+                List<KeyValuePair<string, string?>> nameRecord;
+                try {
+                    nameRecord = ProcessRecords(GetFileNameTemplate(), nameData, false, TemplateOptions.Default).Single().ToList();
+                } catch {
                     yield break;
                 }
-                var nameRecord = nameDict.ToList();
-                await foreach (var record in dict) {
+                await foreach (var record in records) {
                     nameRecord.ForEach(kv => record[kv.Key] = kv.Value);
                     yield return record;
                 }
             } else {
-                await foreach (var record in dict) {
+                await foreach (var record in records) {
                     yield return record;
                 }
             }
