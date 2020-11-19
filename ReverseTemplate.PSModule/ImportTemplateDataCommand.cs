@@ -20,10 +20,10 @@ namespace ReverseTemplate.PSModule {
         public string TemplatePath { get; set; }
 
         [Parameter()]
-        public bool Multiple { get; set; }
+        public SwitchParameter Multiple { get; set; }
 
         [Parameter()]
-        public bool Recurse { get; set; } = true;
+        public SwitchParameter Recurse { get; set; }
 
         void WriteTemplateLine(CachedTemplateLine line) {
             WriteVerbose(line.RegexString + " <" + string.Join(";", line.AllCaptureGroups) + ">");
