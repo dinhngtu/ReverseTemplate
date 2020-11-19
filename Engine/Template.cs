@@ -79,19 +79,21 @@ namespace ReverseTemplate.Engine {
         }
 
         IEnumerable<IDictionary<string, string?>> ProcessRecords(IEnumerable<(CachedTemplateLine line, int index)> templates, TextReader data, bool multiple, TemplateOptions options) {
+            var lineCount = 0;
             do {
                 var dict = new Dictionary<string, string?>();
                 foreach ((var tl, var index) in templates) {
                     Match m;
                     do {
                         string? l;
+                        lineCount++;
                         do {
                             l = data.ReadLine();
                             if (l == null) {
                                 if (index == 0) {
                                     yield break;
                                 } else {
-                                    throw new EndOfStreamException($"reached end of data at template index {index}");
+                                    throw new EndOfStreamException($"reached end of data at template index {index + 1}");
                                 }
                             }
                             // skip empty data lines at beginning of template instead of the end
@@ -101,8 +103,8 @@ namespace ReverseTemplate.Engine {
                         m = tl.RegexObject.Match(l);
                     } while (tl.ForwardCaptureNames.Any(x => !m.Groups[x].Success));
 
-                    if (m == null) {
-                        throw new Exception("line doesn't match");
+                    if (!m.Success) {
+                        throw new ArgumentException($"line {lineCount} doesn't match template index {index + 1}");
                     }
                     foreach (var groupName in options.UseAllGroupNames ? tl.AllCaptureGroups : tl.CaptureNames) {
                         var g = m.Groups[groupName];
@@ -136,6 +138,7 @@ namespace ReverseTemplate.Engine {
         }
 
         async IAsyncEnumerable<IDictionary<string, string?>> ProcessRecordsAsync(IEnumerable<(CachedTemplateLine line, int index)> templates, TextReader data, bool multiple, TemplateOptions options) {
+            var lineCount = 0;
             do {
                 var dict = new Dictionary<string, string?>();
                 foreach ((var tl, var index) in templates) {
@@ -144,6 +147,7 @@ namespace ReverseTemplate.Engine {
                         string? l;
                         do {
                             l = await data.ReadLineAsync();
+                            lineCount++;
                             if (l == null) {
                                 if (index == 0) {
                                     yield break;
@@ -158,8 +162,8 @@ namespace ReverseTemplate.Engine {
                         m = tl.RegexObject.Match(l);
                     } while (tl.ForwardCaptureNames.Any(x => !m.Groups[x].Success));
 
-                    if (m == null) {
-                        throw new Exception("line doesn't match");
+                    if (!m.Success) {
+                        throw new ArgumentException($"line {lineCount} doesn't match template index {index + 1}");
                     }
                     foreach (var groupName in options.UseAllGroupNames ? tl.AllCaptureGroups : tl.CaptureNames) {
                         var g = m.Groups[groupName];
