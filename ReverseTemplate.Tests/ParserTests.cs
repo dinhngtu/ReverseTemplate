@@ -17,7 +17,7 @@ namespace ReverseTemplate.Tests {
             outLine.AssertIsText(0, "aaa ");
             var capture = outLine.AssertIsCapture(1);
             Assert.IsType<RegexPattern>(capture.Pattern);
-            Assert.Equal("capture", capture.VarName);
+            Assert.Single(capture.VarPath, x => x.Name == "capture");
             outLine.AssertIsText(2, " bbb");
         }
 
@@ -36,7 +36,7 @@ namespace ReverseTemplate.Tests {
             Assert.Single(outLine.Sections);
             var capture = outLine.AssertIsCapture(0);
             Assert.IsType<RegexPattern>(capture.Pattern);
-            Assert.Equal("capture", capture.VarName);
+            Assert.Single(capture.VarPath, x => x.Name == "capture");
         }
 
         [Fact]
@@ -61,9 +61,9 @@ namespace ReverseTemplate.Tests {
         public void CaptureNamesTest() {
             var line = "{{/p1/=c1}} aaa {{%f=c2}}";
             var outLine = new CachedTemplateLine(AssertParses(line));
-            Assert.Equal(2, outLine.CaptureNames.Count);
-            Assert.Contains("c1", outLine.CaptureNames);
-            Assert.Contains("c2", outLine.CaptureNames);
+            Assert.Equal(2, outLine.Captures.Count);
+            Assert.Contains(outLine.Captures, x => x.ComputedVarName == "c1");
+            Assert.Contains(outLine.Captures, x => x.ComputedVarName == "c2");
         }
 
         [Fact]
@@ -73,11 +73,11 @@ namespace ReverseTemplate.Tests {
             Assert.Equal(2, outLine.Sections.Count);
             var c1 = outLine.AssertIsCapture(0);
             Assert.IsType<RegexPattern>(c1.Pattern);
-            Assert.Equal("c1", c1.VarName);
+            Assert.Single(c1.VarPath, x => x.Name == "c1");
             var c2 = outLine.AssertIsCapture(1);
             var f2 = Assert.IsType<FormatPattern>(c2.Pattern);
             Assert.Equal("f", f2.Format);
-            Assert.Equal("c2", c2.VarName);
+            Assert.Single(c2.VarPath, x => x.Name == "c2");
         }
 
         [Fact]
@@ -124,7 +124,7 @@ namespace ReverseTemplate.Tests {
             var line = @"{{/asd\/asd/}}";
             var outLine = AssertParses(line);
             var capture = outLine.AssertIsCapture(0);
-            Assert.Equal(@"(?:asd/asd)", capture.ToRegex());
+            Assert.Equal(@"(?:asd/asd)", new CachedCaptureSection(capture).ToRegex());
         }
 
         [Fact]
@@ -132,7 +132,7 @@ namespace ReverseTemplate.Tests {
             var line = @"{{/asd\+/}}";
             var outLine = AssertParses(line);
             var capture = outLine.AssertIsCapture(0);
-            Assert.Equal(@"(?:asd\+)", capture.ToRegex());
+            Assert.Equal(@"(?:asd\+)", new CachedCaptureSection(capture).ToRegex());
         }
     }
 }

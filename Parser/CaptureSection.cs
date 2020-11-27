@@ -2,28 +2,31 @@
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text;
 
 namespace ReverseTemplate.Parser {
     public class CaptureSection : LineSection {
-        public CaptureSection(Pattern pattern, string? varName, CaptureFlags flags) {
+        public CaptureSection(Pattern pattern, IEnumerable<VariablePart> varPath, CaptureFlags flags) {
             Pattern = pattern;
-            VarName = varName;
+            VarPath = varPath.ToList();
             Flags = flags;
         }
 
-        public CaptureSection(Pattern pattern, string? varName, IEnumerable<char> flags)
-            : this(pattern, varName, CaptureFlagsHelper.ParseFlags(flags)) {
+        public CaptureSection(Pattern pattern, IEnumerable<VariablePart> varPath, IEnumerable<char> flags)
+            : this(pattern, varPath, CaptureFlagsHelper.ParseFlags(flags)) {
         }
 
         public Pattern Pattern { get; }
-        public string? VarName { get; }
+        public IReadOnlyList<VariablePart> VarPath { get; }
         public CaptureFlags Flags { get; }
 
         public override string ToRegex() {
+            throw new NotImplementedException();
+            /*
             string captureRegex;
-            if (VarName != null) {
-                captureRegex = $"(?<{VarName}>{Pattern.ToRegex()})";
+            if (VarPath.Count != 0) {
+                captureRegex = $"(?<{ComputedVarName}>{Pattern.ToRegex()})";
             } else {
                 captureRegex = $"(?:{Pattern.ToRegex()})";
             }
@@ -31,14 +34,18 @@ namespace ReverseTemplate.Parser {
                 captureRegex += "?";
             }
             return captureRegex;
+            */
         }
 
         public override string ToString() {
-            if (VarName != null) {
-                return $"{{{{{Pattern}={VarName}}}}}";
+            return $"{{{{{Pattern}}}}}";
+            /*
+            if (VarPath.Count != 0) {
+                return $"{{{{{Pattern}={ComputedVarName}}}}}";
             } else {
                 return $"{{{{{Pattern}}}}}";
             }
+            */
         }
     }
 }
