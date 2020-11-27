@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
 using ReverseTemplate.Parser;
-using Superpower;
+using Sprache;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -12,55 +12,29 @@ using System.Threading.Tasks;
 
 namespace ReverseTemplate.Engine {
     public class Template {
-        private List<CachedTemplateLine> _templateLines;
+        private readonly TemplateFile _templateFile;
+        private readonly List<CachedTemplateLine> _templateLines;
+        private readonly CachedTemplateLine? _fileNameLine;
 
-        public CachedTemplateLine? FileNameTemplateLine { get; private set; }
+        public CachedTemplateLine? FileNameTemplateLine => _fileNameLine;
         public IReadOnlyList<CachedTemplateLine> TemplateLines => _templateLines.AsReadOnly();
 
-        static IEnumerable<CachedTemplateLine> ParseLines(TextReader reader) {
-            string? l;
-            // output lineNum is 1-indexed
-            var lineNum = 1;
-            while ((l = reader.ReadLine()) != null) {
-                lineNum++;
-                if (TemplateParser.TryParse(l, out var tl, out var error, out var pos)) {
-                    yield return new CachedTemplateLine(tl);
-                } else {
-                    var realPos = new Superpower.Model.Position(pos.Absolute, lineNum, pos.Column);
-                    var realError = Regex.Replace(error, @"([^()]*)\(.*?\)", @"$1 " + realPos.ToString().Replace("$", "$$"));
-                    throw new ParseException(realError, realPos);
-                }
-            }
-        }
-
-        public Template(IEnumerable<CachedTemplateLine> lines, CachedTemplateLine? fileNameTemplateLine = null) {
-            _templateLines = new List<CachedTemplateLine>(lines);
-            FileNameTemplateLine = fileNameTemplateLine;
-        }
-
-        public Template(
-            IEnumerable<TemplateLine> lines,
-            TemplateLine? fileNameTemplateLine = null) : this(
-                lines.Select(tl => new CachedTemplateLine(tl)),
-                fileNameTemplateLine != null ? new CachedTemplateLine(fileNameTemplateLine) : null) {
+        public Template(TemplateFile templateFile) {
+            _templateFile = templateFile;
+            _templateLines = _templateFile.TemplateLines.Select(tl => new CachedTemplateLine(tl)).ToList();
+            _fileNameLine = _templateFile.FileNameTemplateLine != null ? new CachedTemplateLine(_templateFile.FileNameTemplateLine) : null;
         }
 
         public static Template Create(TextReader data) {
-            return new Template(ParseLines(data));
+            return new Template(TemplateFileParser.TemplateFile.Parse(data.ReadToEnd()));
         }
 
         public static Template Create(string templateFileName) {
             using var templateReader = new StreamReader(templateFileName);
-            TemplateLine? fntl = null;
-            if (templateReader.Peek() == '#') {
-                if (!TemplateParser.TryParse(templateReader.ReadLine().Substring(1), out fntl, out var err, out var pos)) {
-                    throw new ParseException(err, pos);
-                }
-            }
-            return new Template(ParseLines(templateReader), fntl != null ? new CachedTemplateLine(fntl) : null);
+            return Create(templateReader);
         }
 
-        IEnumerable<(CachedTemplateLine line, int index)> FilterTemplate(TemplateOptions options, bool loop = false) {
+        IEnumerable<(CachedTemplateLine line, int index)> GetEffectiveTemplateLines(TemplateOptions options, bool loop = false) {
             do {
                 for (int i = 0; i < _templateLines.Count; i++) {
                     if (options.SkipTrailingTemplateLines && i == _templateLines.Count - 1 && _templateLines[i].Sections.Count == 0) {
@@ -119,7 +93,7 @@ namespace ReverseTemplate.Engine {
             if (options == null) {
                 options = TemplateOptions.Default;
             }
-            var records = ProcessRecords(FilterTemplate(options), data, multiple, options);
+            var records = ProcessRecords(GetEffectiveTemplateLines(options), data, multiple, options);
             if (FileNameTemplateLine != null) {
                 using var nameData = new StringReader(relativeFilePath);
                 List<KeyValuePair<string, string?>> nameRecord;
@@ -180,7 +154,7 @@ namespace ReverseTemplate.Engine {
             if (options == null) {
                 options = TemplateOptions.Default;
             }
-            var records = ProcessRecordsAsync(FilterTemplate(options), data, multiple, options);
+            var records = ProcessRecordsAsync(GetEffectiveTemplateLines(options), data, multiple, options);
             if (FileNameTemplateLine != null) {
                 using var nameData = new StringReader(relativeFilePath);
                 List<KeyValuePair<string, string?>> nameRecord;

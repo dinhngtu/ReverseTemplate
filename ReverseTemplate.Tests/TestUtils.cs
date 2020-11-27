@@ -2,7 +2,7 @@
 
 using ReverseTemplate.Engine;
 using ReverseTemplate.Parser;
-using Superpower.Model;
+using Sprache;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -12,15 +12,14 @@ using Xunit;
 namespace ReverseTemplate.Tests {
     public static class TestUtils {
         public static TemplateLine AssertParses(string line) {
-            Assert.True(TemplateParser.TryParse(line, out var outLine, out var error, out var errorPosition));
-            Assert.Null(error);
-            Assert.Equal(Position.Empty, errorPosition);
-            Assert.NotNull(outLine);
-            return outLine!;
+            var result = TemplateFileParser.TemplateLine.TryParse(line);
+            Assert.True(result.WasSuccessful);
+            return result.Value;
         }
 
         public static void AssertDoesntParse(string line) {
-            Assert.False(TemplateParser.TryParse(line, out _, out _, out _));
+            var result = TemplateFileParser.TemplateLine.TryParse(line);
+            Assert.False(result.WasSuccessful);
         }
 
         public static TextSection AssertIsText(this TemplateLine line, int idx) {
@@ -48,7 +47,7 @@ namespace ReverseTemplate.Tests {
 
         public static Template MakeTemplate(string template) {
             using var reader = new StringReader(template);
-            return new Template(ParseLines(reader));
+            return Template.Create(reader);
         }
     }
 }
