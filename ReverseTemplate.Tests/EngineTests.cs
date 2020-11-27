@@ -16,8 +16,7 @@ namespace ReverseTemplate.Tests {
         [Fact]
         public async Task SingleTestAsync() {
             using var input = new StringReader("a=1");
-            var templateLine = AssertParses(@"a={{%d=a}}");
-            var engine = new Template(new[] { templateLine });
+            var engine = MakeTemplate(@"a={{%d=a}}");
             var output = await engine.ProcessRecordsAsync(input, false).SingleAsync();
             Assert.Equal("1", output["a"]);
         }
@@ -25,8 +24,7 @@ namespace ReverseTemplate.Tests {
         [Fact]
         public async Task SingleGroupTestAsync() {
             using var input = new StringReader("a=1");
-            var templateLine = AssertParses(@"a={{%d=a}}");
-            var engine = new Template(new[] { templateLine });
+            var engine = MakeTemplate(@"a={{%d=a}}");
             var output = await engine.ProcessRecordsAsync(input, false).SingleAsync();
             Assert.Equal(1, output.Count);
         }
@@ -34,8 +32,7 @@ namespace ReverseTemplate.Tests {
         [Fact]
         public async Task MultipleTestAsync() {
             using var input = new StringReader("a=1\na=2\na=3");
-            var templateLine = AssertParses(@"a={{%d=a}}");
-            var engine = new Template(new[] { templateLine });
+            var engine = MakeTemplate(@"a={{%d=a}}");
             await foreach (var output in engine.ProcessRecordsAsync(input, true)) {
                 Assert.NotNull(output["a"]);
             }
