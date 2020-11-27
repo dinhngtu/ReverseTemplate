@@ -52,10 +52,15 @@ namespace ReverseTemplate.Engine {
             yield return (FileNameTemplateLine, 0);
         }
 
-        IEnumerable<IDictionary<string, string?>> ProcessRecords(IEnumerable<(CachedTemplateLine line, int index)> templates, TextReader data, bool multiple, TemplateOptions options) {
+        IEnumerable<IDictionary<string, CaptureResult?>> ProcessRecords(
+            IEnumerable<(CachedTemplateLine line, int index)> templates,
+            TextReader data,
+            bool multiple,
+            bool useFilter,
+            TemplateOptions options) {
             var lineCount = 0;
             do {
-                var dict = new Dictionary<string, string?>();
+                var dict = new Dictionary<string, CaptureResult?>();
                 foreach ((var tl, var index) in templates) {
                     Match m;
                     do {
@@ -74,8 +79,10 @@ namespace ReverseTemplate.Engine {
                             // to avoid having to determine which is the last template line
                         } while (options.SkipDataGapLines && index == 0 && (options.WhiteSpaceOnlyLinesAreEmpty ? string.IsNullOrWhiteSpace(l) : string.IsNullOrEmpty(l)));
 
-                        foreach (var filter in _templateFile.FilterLines) {
-                            Regex.Replace(l, filter.Pattern.ToRegex(), filter.Replacement);
+                        if (useFilter) {
+                            foreach (var filter in _templateFile.FilterLines) {
+                                l = Regex.Replace(l, filter.Pattern.ToRegex(), filter.Replacement);
+                            }
                         }
                         m = tl.RegexObject.Match(l);
                     } while (tl.ForwardCaptureNames.Any(x => !m.Groups[x].Success));
@@ -83,25 +90,26 @@ namespace ReverseTemplate.Engine {
                     if (!m.Success) {
                         throw new ArgumentException($"line {lineCount} doesn't match template index {index + 1}");
                     }
-                    foreach (var groupName in options.UseAllGroupNames ? tl.AllCaptureGroups : tl.CaptureNames) {
-                        var g = m.Groups[groupName];
-                        dict[groupName] = g.Success ? g.Value : null;
+                    foreach (var group in tl.Captures) {
+                        var g = m.Groups[group.ComputedVarName!];
+                        dict[group.ComputedVarName!] = g.Success ? new CaptureResult(group, g.Value) : null;
                     }
                 }
                 yield return dict;
             } while (multiple);
         }
 
-        public IEnumerable<IDictionary<string, string?>> ProcessRecords(TextReader data, bool multiple, TemplateOptions? options = null, string? relativeFilePath = null) {
+        public IEnumerable<IDictionary<string, CaptureResult?>> ProcessRecords(TextReader data, bool multiple, TemplateOptions? options = null, string? relativeFilePath = null) {
             if (options == null) {
                 options = TemplateOptions.Default;
             }
-            var records = ProcessRecords(GetEffectiveTemplateLines(options), data, multiple, options);
+            var records = ProcessRecords(GetEffectiveTemplateLines(options), data, multiple, true, options);
             if (FileNameTemplateLine != null) {
                 using var nameData = new StringReader(relativeFilePath);
-                List<KeyValuePair<string, string?>> nameRecord;
+                List<KeyValuePair<string, CaptureResult?>> nameRecord;
                 try {
-                    nameRecord = ProcessRecords(GetFileNameTemplate(), nameData, false, TemplateOptions.Default).Single().ToList();
+                    // don't use filters when processing filename
+                    nameRecord = ProcessRecords(GetFileNameTemplate(), nameData, false, false, TemplateOptions.Default).Single().ToList();
                 } catch {
                     yield break;
                 }
@@ -116,10 +124,15 @@ namespace ReverseTemplate.Engine {
             }
         }
 
-        async IAsyncEnumerable<IDictionary<string, string?>> ProcessRecordsAsync(IEnumerable<(CachedTemplateLine line, int index)> templates, TextReader data, bool multiple, TemplateOptions options) {
+        async IAsyncEnumerable<IDictionary<string, CaptureResult?>> ProcessRecordsAsync(
+            IEnumerable<(CachedTemplateLine line, int index)> templates,
+            TextReader data,
+            bool multiple,
+            bool useFilter,
+            TemplateOptions options) {
             var lineCount = 0;
             do {
-                var dict = new Dictionary<string, string?>();
+                var dict = new Dictionary<string, CaptureResult?>();
                 foreach ((var tl, var index) in templates) {
                     Match m;
                     do {
@@ -139,7 +152,7 @@ namespace ReverseTemplate.Engine {
                         } while (options.SkipDataGapLines && index == 0 && (options.WhiteSpaceOnlyLinesAreEmpty ? string.IsNullOrWhiteSpace(l) : string.IsNullOrEmpty(l)));
 
                         foreach (var filter in _templateFile.FilterLines) {
-                            Regex.Replace(l, filter.Pattern.ToRegex(), filter.Replacement);
+                            l = Regex.Replace(l, filter.Pattern.ToRegex(), filter.Replacement);
                         }
                         m = tl.RegexObject.Match(l);
                     } while (tl.ForwardCaptureNames.Any(x => !m.Groups[x].Success));
@@ -147,25 +160,25 @@ namespace ReverseTemplate.Engine {
                     if (!m.Success) {
                         throw new ArgumentException($"line {lineCount} doesn't match template index {index + 1}");
                     }
-                    foreach (var groupName in options.UseAllGroupNames ? tl.AllCaptureGroups : tl.CaptureNames) {
-                        var g = m.Groups[groupName];
-                        dict[groupName] = g.Success ? g.Value : null;
+                    foreach (var group in tl.Captures) {
+                        var g = m.Groups[group.ComputedVarName!];
+                        dict[group.ComputedVarName!] = g.Success ? new CaptureResult(group, g.Value) : null;
                     }
                 }
                 yield return dict;
             } while (multiple);
         }
 
-        public async IAsyncEnumerable<IDictionary<string, string?>> ProcessRecordsAsync(TextReader data, bool multiple, TemplateOptions? options = null, string? relativeFilePath = null) {
+        public async IAsyncEnumerable<IDictionary<string, CaptureResult?>> ProcessRecordsAsync(TextReader data, bool multiple, TemplateOptions? options = null, string? relativeFilePath = null) {
             if (options == null) {
                 options = TemplateOptions.Default;
             }
-            var records = ProcessRecordsAsync(GetEffectiveTemplateLines(options), data, multiple, options);
+            var records = ProcessRecordsAsync(GetEffectiveTemplateLines(options), data, multiple, true, options);
             if (FileNameTemplateLine != null) {
                 using var nameData = new StringReader(relativeFilePath);
-                List<KeyValuePair<string, string?>> nameRecord;
+                List<KeyValuePair<string, CaptureResult?>> nameRecord;
                 try {
-                    nameRecord = ProcessRecords(GetFileNameTemplate(), nameData, false, TemplateOptions.Default).Single().ToList();
+                    nameRecord = ProcessRecords(GetFileNameTemplate(), nameData, false, false, TemplateOptions.Default).Single().ToList();
                 } catch {
                     yield break;
                 }

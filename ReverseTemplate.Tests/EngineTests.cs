@@ -18,7 +18,7 @@ namespace ReverseTemplate.Tests {
             using var input = new StringReader("a=1");
             var engine = MakeTemplate(@"a={{%d=a}}");
             var output = await engine.ProcessRecordsAsync(input, false).SingleAsync();
-            Assert.Equal("1", output["a"]);
+            Assert.Equal("1", output["a"]?.Value);
         }
 
         [Fact]
@@ -51,7 +51,7 @@ namespace ReverseTemplate.Tests {
             var engine = MakeTemplate("a={{%d=a}}\n\n");
             var count = 0;
             await foreach (var output in engine.ProcessRecordsAsync(input, true)) {
-                Assert.Equal((count + 1).ToString(), output["a"]);
+                Assert.Equal((count + 1).ToString(), output["a"]?.Value);
                 count++;
             }
         }
@@ -71,8 +71,8 @@ namespace ReverseTemplate.Tests {
             using var input = new StringReader("a=xxx\n");
             var engine = MakeTemplate("{{/[a-z]/=key}}={{/[a-z]*/=value}}\n");
             var output = await engine.ProcessRecordsAsync(input, false).SingleAsync();
-            Assert.Equal("a", output["key"]);
-            Assert.Equal("xxx", output["value"]);
+            Assert.Equal("a", output["key"]?.Value);
+            Assert.Equal("xxx", output["value"]?.Value);
         }
     }
 }

@@ -1,11 +1,12 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
+using System;
+
 namespace ReverseTemplate.Engine {
     public class TemplateOptions {
         public static TemplateOptions Default { get; } = new TemplateOptions() {
             SkipTrailingTemplateLines = true,
             SkipDataGapLines = true,
-            UseAllGroupNames = true,
             WhiteSpaceOnlyLinesAreEmpty = true,
         };
 
@@ -17,6 +18,7 @@ namespace ReverseTemplate.Engine {
         /// </summary>
         public bool SkipDataGapLines { get; set; }
 
+        [Obsolete]
         public bool UseAllGroupNames { get; set; }
 
         public bool WhiteSpaceOnlyLinesAreEmpty { get; set; }
