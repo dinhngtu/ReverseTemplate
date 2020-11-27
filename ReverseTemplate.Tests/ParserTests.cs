@@ -124,7 +124,7 @@ namespace ReverseTemplate.Tests {
             var line = @"{{/asd\/asd/}}";
             var outLine = AssertParses(line);
             var capture = outLine.AssertIsCapture(0);
-            Assert.Equal(@"(?:asd\/asd)", capture.ToRegex());
+            Assert.Equal(@"(?:asd/asd)", capture.ToRegex());
         }
 
         [Fact]
