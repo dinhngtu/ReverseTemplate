@@ -43,7 +43,7 @@ namespace ReverseTemplate.Engine {
                 return x;
             }).ToList();
             Captures = Sections.OfType<CachedCaptureSection>().Where(cs => cs.VarPath.Any(x => !x.Name.StartsWith("__"))).ToList();
-            ForwardCaptureNames = Sections.OfType<CachedCaptureSection>().Where(cs => cs.Flags.HasFlag(CaptureFlags.SkipDataLineIfNotFound)).Select(x => x.ComputedVarName!).ToList();
+            ForwardCaptureNames = Sections.OfType<CachedCaptureSection>().Where(cs => cs.Flags.HasFlag(CaptureFlags.SkipDataLineIfNotFound)).Select(x => x.VarName!).ToList();
             RegexString = ToRegex(Sections);
             RegexObject = new Regex(RegexString);
             AllCaptureGroups = RegexObject.GetGroupNames().Where(g => !g.StartsWith("__") && !Regex.IsMatch(g, "^[0-9]*$")).ToList();

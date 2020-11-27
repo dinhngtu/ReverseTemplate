@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0-only
+
 using ReverseTemplate.Parser;
 using System;
 using System.Collections.Generic;
@@ -8,26 +10,27 @@ namespace ReverseTemplate.Engine {
     public class CachedCaptureSection : LineSection {
         public CachedCaptureSection(CaptureSection section) {
             Section = section;
-            ComputedVarName = GetComputedVarName(VarPath);
+            VarName = GetVarName(VarPath);
         }
 
         public CaptureSection Section { get; }
-        public string? ComputedVarName { get; }
+        public string? VarName { get; }
         public Pattern Pattern => Section.Pattern;
         public IReadOnlyList<VariablePart> VarPath => Section.VarPath;
         public CaptureFlags Flags => Section.Flags;
 
-        static string? GetComputedVarName(IReadOnlyList<VariablePart> varPath) {
+        static string? GetVarName(IReadOnlyList<VariablePart> varPath) {
             if (varPath.Count == 0) {
                 return null;
             }
+            // basically we remove [] and replace . with __ for regex compatibility
             return string.Join("__", varPath.Select(x => x.Name));
         }
 
         public override string ToRegex() {
             string captureRegex;
             if (VarPath.Count != 0) {
-                captureRegex = $"(?<{ComputedVarName}>{Pattern.ToRegex()})";
+                captureRegex = $"(?<{VarName}>{Pattern.ToRegex()})";
             } else {
                 captureRegex = $"(?:{Pattern.ToRegex()})";
             }
@@ -38,7 +41,7 @@ namespace ReverseTemplate.Engine {
         }
 
         public override string ToString() {
-            return $"{{{{{Pattern}}}}}";
+            return $"{{{{{Pattern}={VarName}}}}}";
         }
     }
 }

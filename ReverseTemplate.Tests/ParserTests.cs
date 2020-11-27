@@ -62,8 +62,8 @@ namespace ReverseTemplate.Tests {
             var line = "{{/p1/=c1}} aaa {{%f=c2}}";
             var outLine = new CachedTemplateLine(AssertParses(line));
             Assert.Equal(2, outLine.Captures.Count);
-            Assert.Contains(outLine.Captures, x => x.ComputedVarName == "c1");
-            Assert.Contains(outLine.Captures, x => x.ComputedVarName == "c2");
+            Assert.Contains(outLine.Captures, x => x.VarName == "c1");
+            Assert.Contains(outLine.Captures, x => x.VarName == "c2");
         }
 
         [Fact]

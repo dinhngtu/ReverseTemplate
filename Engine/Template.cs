@@ -16,6 +16,7 @@ namespace ReverseTemplate.Engine {
         private readonly List<CachedTemplateLine> _templateLines;
         private readonly CachedTemplateLine? _fileNameLine;
 
+        public TemplateFile TemplateFile => _templateFile;
         public CachedTemplateLine? FileNameTemplateLine => _fileNameLine;
         public IReadOnlyList<CachedTemplateLine> TemplateLines => _templateLines.AsReadOnly();
 
@@ -91,8 +92,8 @@ namespace ReverseTemplate.Engine {
                         throw new ArgumentException($"line {lineCount} doesn't match template index {index + 1}");
                     }
                     foreach (var group in tl.Captures) {
-                        var g = m.Groups[group.ComputedVarName!];
-                        dict[group.ComputedVarName!] = g.Success ? new CaptureResult(group, g.Value) : null;
+                        var g = m.Groups[group.VarName!];
+                        dict[group.VarName!] = g.Success ? new CaptureResult(group, g.Value) : null;
                     }
                 }
                 yield return dict;
@@ -163,8 +164,8 @@ namespace ReverseTemplate.Engine {
                         throw new ArgumentException($"line {lineCount} doesn't match template index {index + 1}");
                     }
                     foreach (var group in tl.Captures) {
-                        var g = m.Groups[group.ComputedVarName!];
-                        dict[group.ComputedVarName!] = g.Success ? new CaptureResult(group, g.Value) : null;
+                        var g = m.Groups[group.VarName!];
+                        dict[group.VarName!] = g.Success ? new CaptureResult(group, g.Value) : null;
                     }
                 }
                 yield return dict;
@@ -180,6 +181,8 @@ namespace ReverseTemplate.Engine {
                 using var nameData = new StringReader(relativeFilePath);
                 List<KeyValuePair<string, CaptureResult?>> nameRecord;
                 try {
+                    // we know that filename is coming from StringReader anyway
+                    // no need to use async
                     nameRecord = ProcessRecords(GetFileNameTemplate(), nameData, false, false, TemplateOptions.Default).Single().ToList();
                 } catch {
                     yield break;

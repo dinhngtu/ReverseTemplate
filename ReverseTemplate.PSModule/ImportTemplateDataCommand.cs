@@ -25,8 +25,27 @@ namespace ReverseTemplate.PSModule {
         [Parameter()]
         public SwitchParameter Recurse { get; set; }
 
-        void WriteTemplateLine(CachedTemplateLine line) {
-            WriteVerbose(line.RegexString + " <" + string.Join(";", line.AllCaptureGroups) + ">");
+        void WriteTemplateLine(CachedTemplateLine line, string type = null) {
+            if (type != null) {
+                type += ": ";
+            }
+            WriteVerbose($"{type}{line.RegexString} <{string.Join("; ", line.AllCaptureGroups)}>");
+        }
+
+        void WriteFilterLine(FilterLine filter) {
+            WriteVerbose($"filter: {filter.Pattern.ToRegex()} -> {filter.Replacement}");
+        }
+
+        T UpsertProperty<T>(PSObject pso, string name) where T : new() {
+            T result;
+            var member = pso.Members.Match(name).SingleOrDefault();
+            if (member != null && member.Value is T t) {
+                result = t;
+            } else {
+                result = new T();
+                pso.Members.Add(new PSNoteProperty(name, result));
+            }
+            return result;
         }
 
         void SetProperty(PSObject pso, CaptureResult result) {
@@ -36,14 +55,7 @@ namespace ReverseTemplate.PSModule {
                 if (result.Section.VarPath[i] is ArrayVariablePart) {
                     throw new InvalidOperationException("Array variable part only allowed at the end of the capture");
                 }
-                var member = pso.Members.Match(result.Section.VarPath[i].Name).SingleOrDefault();
-                if (member?.Value is PSObject _prop) {
-                    prop = _prop;
-                } else {
-                    _prop = new PSObject();
-                    prop.Members.Add(new PSNoteProperty(result.Section.VarPath[i].Name, _prop));
-                    prop = _prop;
-                }
+                prop = UpsertProperty<PSObject>(prop, result.Section.VarPath[i].Name);
             }
             // set final capture part
             if (result.Section.VarPath.Count > 0) {
@@ -51,14 +63,7 @@ namespace ReverseTemplate.PSModule {
                 if (vp is ObjectVariablePart) {
                     prop.Members.Add(new PSNoteProperty(vp.Name, result.Value));
                 } else if (vp is ArrayVariablePart) {
-                    List<PSObject> array;
-                    var finalProp = prop.Members.Match(vp.Name).SingleOrDefault();
-                    if (finalProp != null) {
-                        array = (List<PSObject>)finalProp.Value;
-                    } else {
-                        array = new List<PSObject>();
-                        prop.Members.Add(new PSNoteProperty(vp.Name, array));
-                    }
+                    var array = UpsertProperty<List<PSObject>>(prop, vp.Name);
                     array.Add(result.Value);
                 }
             }
@@ -67,7 +72,10 @@ namespace ReverseTemplate.PSModule {
         protected override void EndProcessing() {
             var engine = Template.Create(SessionState.Path.GetUnresolvedProviderPathFromPSPath(TemplatePath));
             if (engine.FileNameTemplateLine != null) {
-                WriteTemplateLine(engine.FileNameTemplateLine);
+                WriteTemplateLine(engine.FileNameTemplateLine, "filename");
+            }
+            foreach (var filter in engine.TemplateFile.FilterLines) {
+                WriteFilterLine(filter);
             }
             foreach (var line in engine.TemplateLines) {
                 WriteTemplateLine(line);
@@ -76,6 +84,7 @@ namespace ReverseTemplate.PSModule {
             WriteVerbose("Processing root path " + rootPath);
             var rootDir = new DirectoryInfo(rootPath);
             foreach (var file in rootDir.EnumerateFiles("*", Recurse ? SearchOption.AllDirectories : SearchOption.TopDirectoryOnly)) {
+                // even if rootDir.FullName contains the / then TrimStart will take care of it
                 var relativeFilePath = file.FullName.Substring(rootDir.FullName.Length).TrimStart(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
                 WriteVerbose("Processing file " + relativeFilePath);
                 using var fileText = file.OpenText();
@@ -86,6 +95,7 @@ namespace ReverseTemplate.PSModule {
                     }
                     WriteObject(pso);
                 }
+
             }
         }
     }
