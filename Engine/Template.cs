@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
 using ReverseTemplate.Parser;
-using Sprache;
+using Superpower;
 using System;
 using System.Collections.Generic;
 using System.IO;

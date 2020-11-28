@@ -4,71 +4,76 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using Sprache;
+using Superpower;
+using Superpower.Model;
+using Superpower.Parsers;
 
 namespace ReverseTemplate.Parser {
     public class TemplateFileParser {
-        static readonly Parser<IEnumerable<char>> open = Parse.String("{{");
-        static readonly Parser<IEnumerable<char>> close = Parse.String("}}");
+        static readonly TextParser<Unit> newLine = Span.EqualTo("\r\n").Value(Unit.Value).Or(Character.In('\n', '\r').Value(Unit.Value));
+        static readonly TextParser<char> notNewLine = Character.ExceptIn('\n', '\r');
 
-        static readonly Parser<string> varName = Parse.LetterOrDigit.Or(Parse.Char('_')).AtLeastOnce().Text();
-        static readonly Parser<VariablePart> arrayVarPart =
+        static readonly TextParser<TextSpan> open = Span.EqualTo("{{");
+        static readonly TextParser<TextSpan> close = Span.EqualTo("}}");
+
+        static readonly TextParser<TextSpan> varName = Span.MatchedBy(Character.LetterOrDigit.Or(Character.EqualTo('_')).AtLeastOnce());
+        static readonly TextParser<VariablePart> arrayVarPart =
             from vn in varName
-            from _ in Parse.String("[]")
-            select new ArrayVariablePart(vn);
-        static readonly Parser<VariablePart> objVarPart = varName.Select(vn => new ObjectVariablePart(vn));
-        static readonly Parser<IEnumerable<VariablePart>> varPath = arrayVarPart.Or(objVarPart).DelimitedBy(Parse.Char('.'));
-        static readonly Parser<char> escape = Parse.Char('\\');
-        static readonly Parser<char> escapable = Parse.Chars('\\', '/');
-        static readonly Parser<char> notEscapable = Parse.CharExcept("\\/");
+            from _ in Span.EqualTo("[]")
+            select new ArrayVariablePart(vn.ToStringValue()) as VariablePart;
+        static readonly TextParser<VariablePart> objVarPart = varName.Select(vn => new ObjectVariablePart(vn.ToStringValue()) as VariablePart);
+        static readonly TextParser<VariablePart[]> _varPath = arrayVarPart.Try().Or(objVarPart).AtLeastOnceDelimitedBy(Character.EqualTo('.'));
+        static readonly TextParser<VariablePart[]> varPath = Character.EqualTo('=').IgnoreThen(_varPath);
 
-        static readonly Parser<char> regexChars = escape.Then(_ => escapable).Or(escape).Or(notEscapable);
+        static readonly TextParser<char> escape = Character.EqualTo('\\');
+        static readonly TextParser<char> escapable = Character.In('\\', '/');
+        static readonly TextParser<char> notEscapable = Character.ExceptIn('\\', '/');
 
-        static readonly Parser<Pattern> _regexPart = regexChars.Many().Text().Select(regex => new RegexPattern(regex));
-        static readonly Parser<Pattern> regexPart = _regexPart.Contained(Parse.Char('/'), Parse.Char('/'));
+        static readonly TextParser<char> regexChars = escape.IgnoreThen(escapable).Try().Or(escape).Or(notEscapable);
 
-        static readonly Parser<Pattern> _formatPart = Parse.AnyChar.Select(fmt => new FormatPattern(fmt.ToString()));
-        static readonly Parser<Pattern> formatPart = Parse.Char('%').Then(_ => _formatPart);
+        // can't capture the whole original span since we need to transform \\ and \/
+        static readonly TextParser<Pattern> _regexPart = regexChars.Many().Select(c => new RegexPattern(new string(c)) as Pattern);
+        static readonly TextParser<Pattern> regexPart = _regexPart.Between(Character.EqualTo('/'), Character.EqualTo('/'));
 
-        static readonly Parser<IEnumerable<VariablePart>> varPathPart = Parse.Char('=').Then(_ => varPath);
+        static readonly TextParser<Pattern> _formatPart = notNewLine.Select(fmt => new FormatPattern(fmt.ToString()) as Pattern);
+        static readonly TextParser<Pattern> formatPart = Character.EqualTo('%').IgnoreThen(_formatPart);
 
-        static readonly Parser<IEnumerable<char>> flagsPart = Parse.Chars('?', '<', '>').Many();
+        static readonly TextParser<char[]> flagsPart = Character.In('?', '<', '>').Many();
 
-        static readonly Parser<LineSection> _captureSection =
+        static readonly TextParser<LineSection> _captureSection =
             from part in regexPart.Or(formatPart)
-            from capt in varPathPart.Optional()
+            from capt in varPath.OptionalOrDefault(Array.Empty<VariablePart>())
             from flags in flagsPart
-            select new CaptureSection(part, capt.GetOrElse(Enumerable.Empty<VariablePart>()), flags);
+            select new CaptureSection(part, capt, flags) as LineSection;
 
-        static readonly Parser<LineSection> textSection = Parse.AnyChar.Except(open.Or(close).Or(Parse.LineTerminator)).Many().Text().Select(x => new TextSection(x));
+        static readonly TextParser<LineSection> textSection = Span.MatchedBy(Parse.Not(open.Or(close)).IgnoreThen(notNewLine).AtLeastOnce())
+            .Select(x => new TextSection(x.ToStringValue()) as LineSection);
 
-        static readonly Parser<TemplateLine> _templateLine =
+        static readonly TextParser<TemplateLine> _templateLine =
             textSection
-            .Or(_captureSection.Contained(open, close))
+            .Or(_captureSection.Between(open, close))
             .Many()
             .Select(x => new TemplateLine(x));
-        static readonly Parser<TemplateLine> templateLine =
-            from tl in _templateLine
-            from _ in Parse.LineTerminator
-            select tl;
 
-        static readonly Parser<char> directive = Parse.Char('#');
+        static readonly TextParser<Unit> directive = Character.EqualTo('#').Value(Unit.Value);
 
-        static readonly Parser<TemplateLine> fileNameLine = _templateLine.Contained(directive, Parse.LineEnd);
+        // in case of confusion between filename line and filter
+        static readonly TextParser<TemplateLine> fileNameLine = Parse.Not(Span.EqualTo("#/")).IgnoreThen(_templateLine.Between(directive, newLine));
 
-        static readonly Parser<FilterLine> _filterLine =
+        static readonly TextParser<FilterLine> _filterLine =
             from pattern in regexPart
-            from replace in Parse.AnyChar.Except(Parse.LineTerminator).Many().Text()
-            select new FilterLine(pattern, replace);
-        static readonly Parser<FilterLine> filterLine = _filterLine.Contained(directive, Parse.LineEnd);
+            from replace in Span.MatchedBy(notNewLine.IgnoreMany())
+            select new FilterLine(pattern, replace.ToStringValue());
+        static readonly TextParser<FilterLine> filterLine = _filterLine.Between(directive, newLine);
 
-        static readonly Parser<TemplateFile> templateFile =
-            from fnl in fileNameLine.Optional()
+        static readonly TextParser<TemplateFile> templateFile =
+            from fnl in fileNameLine!.OptionalOrDefault()
             from filters in filterLine.Many()
-            from lines in templateLine.Many().End()
-            select new TemplateFile(lines, filters: filters, fileNameLine: fnl.GetOrDefault());
+            from lines in _templateLine.ManyDelimitedBy(newLine)
+            from _ in newLine.OptionalOrDefault()
+            select new TemplateFile(lines, filters: filters, fileNameLine: fnl);
 
-        public static Parser<TemplateLine> TemplateLine => templateLine;
-        public static Parser<TemplateFile> TemplateFile => templateFile;
+        public static TextParser<TemplateLine> TemplateLine => _templateLine;
+        public static TextParser<TemplateFile> TemplateFile => templateFile;
     }
 }

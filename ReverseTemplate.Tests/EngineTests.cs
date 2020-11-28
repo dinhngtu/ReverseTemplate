@@ -1,6 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
-using ReverseTemplate.Engine;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -16,7 +15,7 @@ namespace ReverseTemplate.Tests {
         [Fact]
         public async Task SingleTestAsync() {
             using var input = new StringReader("a=1");
-            var engine = MakeTemplate(@"a={{%d=a}}");
+            var engine = MakeTemplate("a={{%d=a}}");
             var output = await engine.ProcessRecordsAsync(input, false).SingleAsync();
             Assert.Equal("1", output["a"]?.Value);
         }
@@ -24,7 +23,7 @@ namespace ReverseTemplate.Tests {
         [Fact]
         public async Task SingleGroupTestAsync() {
             using var input = new StringReader("a=1");
-            var engine = MakeTemplate(@"a={{%d=a}}");
+            var engine = MakeTemplate("a={{%d=a}}");
             var output = await engine.ProcessRecordsAsync(input, false).SingleAsync();
             Assert.Equal(1, output.Count);
         }
@@ -32,7 +31,7 @@ namespace ReverseTemplate.Tests {
         [Fact]
         public async Task MultipleTestAsync() {
             using var input = new StringReader("a=1\na=2\na=3");
-            var engine = MakeTemplate(@"a={{%d=a}}");
+            var engine = MakeTemplate("a={{%d=a}}");
             await foreach (var output in engine.ProcessRecordsAsync(input, true)) {
                 Assert.NotNull(output["a"]);
             }
@@ -40,14 +39,14 @@ namespace ReverseTemplate.Tests {
 
         [Fact]
         public async Task TrailingTestCountAsync() {
-            using var input = new StringReader("\na=1\na=2\n\na=3\n\n\n");
+            using var input = new StringReader("\na=1\n\na=2\n\na=3\n\n\n");
             var engine = MakeTemplate("a={{%d=a}}\n\n");
             Assert.Equal(3, await engine.ProcessRecordsAsync(input, true).CountAsync());
         }
 
         [Fact]
         public async Task TrailingTestContentAsync() {
-            using var input = new StringReader("\na=1\na=2\n\na=3\n\n\n");
+            using var input = new StringReader("\na=1\n\na=2\n\na=3\n\n\n");
             var engine = MakeTemplate("a={{%d=a}}\n\n");
             var count = 0;
             await foreach (var output in engine.ProcessRecordsAsync(input, true)) {
@@ -73,6 +72,55 @@ namespace ReverseTemplate.Tests {
             var output = await engine.ProcessRecordsAsync(input, false).SingleAsync();
             Assert.Equal("a", output["key"]?.Value);
             Assert.Equal("xxx", output["value"]?.Value);
+        }
+
+        [Fact]
+        public async Task FilterTestAsync() {
+            using var input = new StringReader("a=xxx\n");
+            var engine = MakeTemplate("#/a/b\nb={{/[a-z]*/=value}}\n");
+            var output = await engine.ProcessRecordsAsync(input, false).SingleAsync();
+            Assert.Equal("xxx", output["value"]?.Value);
+        }
+
+        [Fact]
+        public async Task DoubleFilterTestAsync() {
+            using var input = new StringReader("a=xxx\n");
+            var engine = MakeTemplate("#/a/b\n#/b/c\nc={{/[a-z]*/=value}}\n");
+            var output = await engine.ProcessRecordsAsync(input, false).SingleAsync();
+            Assert.Equal("xxx", output["value"]?.Value);
+        }
+
+        [Fact]
+        public async Task FileNameTestAsync() {
+            using var input = new StringReader("a=xxx\n");
+            var engine = MakeTemplate("#x/{{%d=x}}\na={{/[a-z]*/=value}}\n");
+            var output = await engine.ProcessRecordsAsync(input, false, relativeFilePath: "x/1").SingleAsync();
+            Assert.Equal("1", output["x"]?.Value);
+            Assert.Equal("xxx", output["value"]?.Value);
+        }
+
+        [Fact]
+        public async Task FileNameAndFilterTestAsync() {
+            using var input = new StringReader("a=xxx\n");
+            var engine = MakeTemplate("#x/{{%d=x}}\n#/a/b\nb={{/[a-z]*/=value}}\n");
+            var output = await engine.ProcessRecordsAsync(input, false, relativeFilePath: "x/1").SingleAsync();
+            Assert.Equal("1", output["x"]?.Value);
+            Assert.Equal("xxx", output["value"]?.Value);
+        }
+
+        [Fact]
+        public async Task CaptureNameTransformTestAsync() {
+            using var input = new StringReader("a=xxx\n");
+            var engine = MakeTemplate("a={{/[a-z]*/=a.b.c.d[]}}\n");
+            var output = await engine.ProcessRecordsAsync(input, false).SingleAsync();
+            Assert.Equal("xxx", output["a__b__c__d"]?.Value);
+        }
+
+        [Fact]
+        public async Task DumbTestAsync() {
+            using var input = new StringReader("a\n1=b\na\n2=b\n");
+            var engine = MakeTemplate("a\n{{%d=b}}=b\n");
+            Assert.Equal(2, await engine.ProcessRecordsAsync(input, true).CountAsync());
         }
     }
 }
