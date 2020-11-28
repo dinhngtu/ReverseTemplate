@@ -1,7 +1,4 @@
-using ReverseTemplate.Parser;
-using System;
-using System.Collections.Generic;
-using System.Text;
+// SPDX-License-Identifier: GPL-3.0-only
 
 namespace ReverseTemplate.Engine {
     public class CaptureResult {

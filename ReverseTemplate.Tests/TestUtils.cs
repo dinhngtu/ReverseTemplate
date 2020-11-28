@@ -3,10 +3,7 @@
 using ReverseTemplate.Engine;
 using ReverseTemplate.Parser;
 using Superpower;
-using System;
-using System.Collections.Generic;
 using System.IO;
-using System.Text;
 using Xunit;
 
 namespace ReverseTemplate.Tests {

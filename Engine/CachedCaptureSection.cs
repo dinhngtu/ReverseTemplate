@@ -1,10 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
 using ReverseTemplate.Parser;
-using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 
 namespace ReverseTemplate.Engine {
     public class CachedCaptureSection : LineSection {

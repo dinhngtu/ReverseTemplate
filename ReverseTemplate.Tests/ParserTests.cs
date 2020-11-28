@@ -2,7 +2,6 @@
 
 using ReverseTemplate.Engine;
 using ReverseTemplate.Parser;
-using System;
 using Xunit;
 
 using static ReverseTemplate.Tests.TestUtils;

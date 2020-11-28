@@ -15,8 +15,7 @@ namespace ReverseTemplate.Parser {
         public static CaptureFlags ParseFlags(IEnumerable<char> flagChars) {
             CaptureFlags flags = 0;
             foreach (var f in flagChars) {
-                flags |= f switch
-                {
+                flags |= f switch {
                     '?' => CaptureFlags.Optional,
                     '>' => CaptureFlags.SkipDataLineIfNotFound,
                     '<' => CaptureFlags.SkipTemplateLineIfNotFound,
