@@ -79,8 +79,10 @@ namespace ReverseTemplate.PSModule {
                 WriteTemplateLine(line);
             }
             var rootPath = SessionState.Path.GetUnresolvedProviderPathFromPSPath(RootPath);
-            WriteVerbose("Processing root path " + rootPath);
+            WriteVerbose($"Processing root path {rootPath}");
             var rootDir = new DirectoryInfo(rootPath);
+
+            int fileCount = 0;
             foreach (var file in rootDir.EnumerateFiles("*", Recurse ? SearchOption.AllDirectories : SearchOption.TopDirectoryOnly)) {
                 // even if rootDir.FullName contains the / then TrimStart will take care of it
                 var relativeFilePath = file.FullName.Substring(rootDir.FullName.Length).TrimStart(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
@@ -94,7 +96,16 @@ namespace ReverseTemplate.PSModule {
                     WriteObject(pso);
                 }
 
+                if (++fileCount % 100 == 0) {
+                    WriteProgress(new ProgressRecord(0, "Importing files...", $"{fileCount} files processed.") {
+                        PercentComplete = -1,
+                        SecondsRemaining = -1,
+                    });
+                }
             }
+            WriteProgress(new ProgressRecord(0, "Importing files...", $"{fileCount} files processed.") {
+                RecordType = ProgressRecordType.Completed
+            });
         }
     }
 }
