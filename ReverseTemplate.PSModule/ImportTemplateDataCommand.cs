@@ -86,10 +86,11 @@ namespace ReverseTemplate.PSModule {
             foreach (var file in rootDir.EnumerateFiles("*", Recurse ? SearchOption.AllDirectories : SearchOption.TopDirectoryOnly)) {
                 // even if rootDir.FullName contains the / then TrimStart will take care of it
                 var relativeFilePath = file.FullName.Substring(rootDir.FullName.Length).TrimStart(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
-                WriteVerbose("Processing file " + relativeFilePath);
+                var normalizedFilePath = relativeFilePath.Replace(Path.DirectorySeparatorChar, '/').Replace(Path.AltDirectorySeparatorChar, '/');
+                WriteVerbose("Processing file " + normalizedFilePath);
                 using var fileText = file.OpenText();
                 try {
-                    foreach (var record in engine.ProcessRecords(fileText, Multiple, relativeFilePath: relativeFilePath)) {
+                    foreach (var record in engine.ProcessRecords(fileText, Multiple, relativeFilePath: normalizedFilePath)) {
                         var pso = new PSObject();
                         foreach (var kv in record) {
                             SetProperty(pso, kv.Value);
@@ -97,7 +98,7 @@ namespace ReverseTemplate.PSModule {
                         WriteObject(pso);
                     }
                 } catch (Exception ex) {
-                    throw new Exception($"error at file '{relativeFilePath}'", ex);
+                    throw new Exception($"error at file '{normalizedFilePath}'", ex);
                 }
 
                 if (++fileCount % 100 == 0) {
