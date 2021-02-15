@@ -88,12 +88,16 @@ namespace ReverseTemplate.PSModule {
                 var relativeFilePath = file.FullName.Substring(rootDir.FullName.Length).TrimStart(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
                 WriteVerbose("Processing file " + relativeFilePath);
                 using var fileText = file.OpenText();
-                foreach (var record in engine.ProcessRecords(fileText, Multiple, relativeFilePath: relativeFilePath)) {
-                    var pso = new PSObject();
-                    foreach (var kv in record) {
-                        SetProperty(pso, kv.Value);
+                try {
+                    foreach (var record in engine.ProcessRecords(fileText, Multiple, relativeFilePath: relativeFilePath)) {
+                        var pso = new PSObject();
+                        foreach (var kv in record) {
+                            SetProperty(pso, kv.Value);
+                        }
+                        WriteObject(pso);
                     }
-                    WriteObject(pso);
+                } catch (Exception ex) {
+                    throw new Exception($"error at file '{relativeFilePath}'", ex);
                 }
 
                 if (++fileCount % 100 == 0) {
