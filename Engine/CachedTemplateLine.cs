@@ -18,9 +18,11 @@ namespace ReverseTemplate.Engine {
 
         string ToRegex(IEnumerable<LineSection> sections) {
             var sb = new StringBuilder();
+            sb.Append('^');
             foreach (var s in sections) {
                 sb.Append(s.ToRegex());
             }
+            sb.Append('$');
             return sb.ToString();
         }
 
