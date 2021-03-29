@@ -134,6 +134,19 @@ namespace ReverseTemplate.Tests {
 
         [Fact]
         public async Task BeginArrayTestAsync() {
+            using var input = new StringReader("a=1\na=2\na=3\na=4\nb=0\n");
+            var engine = MakeTemplate("a={{%d=a[]|}}\nb={{%d=b}}\n");
+            var output = await engine.ProcessRecordsAsync(input, false).SingleAsync();
+            Assert.Equal(4, output["a"].Values.Count);
+            Assert.Equal("1", output["a"].Values[0]);
+            Assert.Equal("2", output["a"].Values[1]);
+            Assert.Equal("3", output["a"].Values[2]);
+            Assert.Equal("4", output["a"].Values[3]);
+            Assert.Single(output["b"].Values, "0");
+        }
+
+        [Fact]
+        public async Task EndArrayTestAsync() {
             using var input = new StringReader("b=0\na=1\na=2\na=3\na=4\n");
             var engine = MakeTemplate("b={{%d=b}}\na={{%d=a[]|}}\n");
             var output = await engine.ProcessRecordsAsync(input, false).SingleAsync();
@@ -146,16 +159,17 @@ namespace ReverseTemplate.Tests {
         }
 
         [Fact]
-        public async Task EndArrayTestAsync() {
-            using var input = new StringReader("a=1\na=2\na=3\na=4\nb=0\n");
-            var engine = MakeTemplate("a={{%d=a[]|}}\nb={{%d=b}}\n");
+        public async Task WrappedArrayTestAsync() {
+            using var input = new StringReader("b=0\na=1\na=2\na=3\na=4\nc=5\n");
+            var engine = MakeTemplate("b={{%d=b}}\na={{%d=a[]|}}\nc={{%d=c}}\n");
             var output = await engine.ProcessRecordsAsync(input, false).SingleAsync();
+            Assert.Single(output["b"].Values, "0");
             Assert.Equal(4, output["a"].Values.Count);
             Assert.Equal("1", output["a"].Values[0]);
             Assert.Equal("2", output["a"].Values[1]);
             Assert.Equal("3", output["a"].Values[2]);
             Assert.Equal("4", output["a"].Values[3]);
-            Assert.Single(output["b"].Values, "0");
+            Assert.Single(output["c"].Values, "5");
         }
     }
 }

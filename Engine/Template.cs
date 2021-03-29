@@ -69,28 +69,32 @@ namespace ReverseTemplate.Engine {
             var lineCount = 0;
             do {
                 var record = new Record();
+                string? l = null;  // keep current data line across template lines
+                bool skipRead = false;
                 foreach ((var tl, var index) in templates) {
                     while (true) {
                         Match m;
                         do {
-                            string? l;
-                            lineCount++;
-                            do {
-                                l = data.ReadLine();
-                                if (l == null) {
-                                    if (tl.RepeatTemplateLineUntilNotFound) {
-                                        yield return record;
-                                        yield break;
+                            if (!skipRead) {
+                                lineCount++;
+                                do {
+                                    l = data.ReadLine();
+                                    if (l == null) {
+                                        if (tl.RepeatTemplateLineUntilNotFound) {
+                                            yield return record;
+                                            yield break;
+                                        }
+                                        if (index == 0) {
+                                            yield break;
+                                        } else {
+                                            throw new EndOfStreamException($"reached end of data at template index {index + 1}");
+                                        }
                                     }
-                                    if (index == 0) {
-                                        yield break;
-                                    } else {
-                                        throw new EndOfStreamException($"reached end of data at template index {index + 1}");
-                                    }
-                                }
-                                // skip empty data lines at beginning of template instead of the end
-                                // to avoid having to determine which is the last template line
-                            } while (options.SkipDataGapLines && index == 0 && (options.WhiteSpaceOnlyLinesAreEmpty ? string.IsNullOrWhiteSpace(l) : string.IsNullOrEmpty(l)));
+                                    // skip empty data lines at beginning of template instead of the end
+                                    // to avoid having to determine which is the last template line
+                                } while (options.SkipDataGapLines && index == 0 && (options.WhiteSpaceOnlyLinesAreEmpty ? string.IsNullOrWhiteSpace(l) : string.IsNullOrEmpty(l)));
+                            }
+                            skipRead = false;
 
                             if (useFilter) {
                                 foreach (var filter in _templateFile.FilterLines) {
@@ -102,9 +106,12 @@ namespace ReverseTemplate.Engine {
 
                         if (!m.Success) {
                             if (tl.SkipTemplateLineIfNotFound) {
+                                skipRead = true;
                                 // to next template line
                                 break;
-                            } else if (!tl.RepeatTemplateLineUntilNotFound) {
+                            } else if (tl.RepeatTemplateLineUntilNotFound) {
+                                skipRead = true;
+                            } else {
                                 throw new ArgumentException($"line {lineCount} doesn't match template index {index + 1}");
                             }
                         }
@@ -163,28 +170,32 @@ namespace ReverseTemplate.Engine {
             var lineCount = 0;
             do {
                 var record = new Record();
+                string? l = null;  // keep current data line across template lines
+                bool skipRead = false;
                 foreach ((var tl, var index) in templates) {
                     while (true) {
                         Match m;
                         do {
-                            string? l;
-                            lineCount++;
-                            do {
-                                l = await data.ReadLineAsync();
-                                if (l == null) {
-                                    if (tl.RepeatTemplateLineUntilNotFound) {
-                                        yield return record;
-                                        yield break;
+                            if (!skipRead) {
+                                lineCount++;
+                                do {
+                                    l = await data.ReadLineAsync();
+                                    if (l == null) {
+                                        if (tl.RepeatTemplateLineUntilNotFound) {
+                                            yield return record;
+                                            yield break;
+                                        }
+                                        if (index == 0) {
+                                            yield break;
+                                        } else {
+                                            throw new EndOfStreamException($"reached end of data at template index {index + 1}");
+                                        }
                                     }
-                                    if (index == 0) {
-                                        yield break;
-                                    } else {
-                                        throw new EndOfStreamException($"reached end of data at template index {index + 1}");
-                                    }
-                                }
-                                // skip empty data lines at beginning of template instead of the end
-                                // to avoid having to determine which is the last template line
-                            } while (options.SkipDataGapLines && index == 0 && (options.WhiteSpaceOnlyLinesAreEmpty ? string.IsNullOrWhiteSpace(l) : string.IsNullOrEmpty(l)));
+                                    // skip empty data lines at beginning of template instead of the end
+                                    // to avoid having to determine which is the last template line
+                                } while (options.SkipDataGapLines && index == 0 && (options.WhiteSpaceOnlyLinesAreEmpty ? string.IsNullOrWhiteSpace(l) : string.IsNullOrEmpty(l)));
+                            }
+                            skipRead = false;
 
                             if (useFilter) {
                                 foreach (var filter in _templateFile.FilterLines) {
@@ -196,9 +207,12 @@ namespace ReverseTemplate.Engine {
 
                         if (!m.Success) {
                             if (tl.SkipTemplateLineIfNotFound) {
+                                skipRead = true;
                                 // to next template line
                                 break;
-                            } else if (!tl.RepeatTemplateLineUntilNotFound) {
+                            } else if (tl.RepeatTemplateLineUntilNotFound) {
+                                skipRead = true;
+                            } else {
                                 throw new ArgumentException($"line {lineCount} doesn't match template index {index + 1}");
                             }
                         }
