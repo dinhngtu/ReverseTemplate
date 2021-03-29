@@ -90,13 +90,16 @@ namespace ReverseTemplate.PSModule {
                 WriteVerbose("Processing file " + normalizedFilePath);
                 using var fileText = file.OpenText();
                 try {
+                    var totalRecords = 0;
                     foreach (var record in engine.ProcessRecords(fileText, Multiple, relativeFilePath: normalizedFilePath)) {
                         var pso = new PSObject();
                         foreach (var kv in record) {
                             SetProperty(pso, kv.Value);
                         }
                         WriteObject(pso);
+                        totalRecords++;
                     }
+                    WriteVerbose("Emitted " + totalRecords.ToString() + " records");
                 } catch (Exception ex) {
                     throw new Exception($"error at file '{normalizedFilePath}'", ex);
                 }
