@@ -39,9 +39,11 @@ namespace ReverseTemplate.PSModule {
             var member = pso.Members.Match(name).SingleOrDefault();
             if (member != null && member.Value is T t) {
                 result = t;
-            } else {
+            } else if (member == null) {
                 result = new T();
                 pso.Members.Add(new PSNoteProperty(name, result));
+            } else {
+                throw new Exception($"Unexpected property type {member.GetType()}");
             }
             return result;
         }
