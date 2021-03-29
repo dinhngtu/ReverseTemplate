@@ -36,7 +36,7 @@ namespace ReverseTemplate.Parser {
         static readonly TextParser<Pattern> _formatPart = notNewLine.Select(fmt => new FormatPattern(fmt.ToString()) as Pattern);
         static readonly TextParser<Pattern> formatPart = Character.EqualTo('%').IgnoreThen(_formatPart);
 
-        static readonly TextParser<char[]> flagsPart = Character.In('?', '<', '>').Many();
+        static readonly TextParser<char[]> flagsPart = Character.In('?', '<', '>', '|').Many();
 
         static readonly TextParser<LineSection> _captureSection =
             from part in regexPart.Or(formatPart)

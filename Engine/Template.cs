@@ -9,6 +9,8 @@ using System.Linq;
 using System.Text.RegularExpressions;
 
 namespace ReverseTemplate.Engine {
+    using Record = Dictionary<string, CaptureResult>;
+
     public class Template {
         private readonly TemplateFile _templateFile;
         private readonly List<CachedTemplateLine> _templateLines;
@@ -58,7 +60,7 @@ namespace ReverseTemplate.Engine {
             yield return (FileNameTemplateLine, 0);
         }
 
-        IEnumerable<IDictionary<string, CaptureResult?>> ProcessRecords(
+        IEnumerable<Record> ProcessRecords(
             IEnumerable<(CachedTemplateLine line, int index)> templates,
             TextReader data,
             bool multiple,
@@ -66,53 +68,75 @@ namespace ReverseTemplate.Engine {
             TemplateOptions options) {
             var lineCount = 0;
             do {
-                var dict = new Dictionary<string, CaptureResult?>();
+                var record = new Record();
                 foreach ((var tl, var index) in templates) {
-                    Match m;
-                    do {
-                        string? l;
-                        lineCount++;
+                    while (true) {
+                        Match m;
                         do {
-                            l = data.ReadLine();
-                            if (l == null) {
-                                if (index == 0) {
-                                    yield break;
-                                } else {
-                                    throw new EndOfStreamException($"reached end of data at template index {index + 1}");
+                            string? l;
+                            lineCount++;
+                            do {
+                                l = data.ReadLine();
+                                if (l == null) {
+                                    if (tl.RepeatTemplateLineUntilNotFound) {
+                                        yield return record;
+                                        yield break;
+                                    }
+                                    if (index == 0) {
+                                        yield break;
+                                    } else {
+                                        throw new EndOfStreamException($"reached end of data at template index {index + 1}");
+                                    }
+                                }
+                                // skip empty data lines at beginning of template instead of the end
+                                // to avoid having to determine which is the last template line
+                            } while (options.SkipDataGapLines && index == 0 && (options.WhiteSpaceOnlyLinesAreEmpty ? string.IsNullOrWhiteSpace(l) : string.IsNullOrEmpty(l)));
+
+                            if (useFilter) {
+                                foreach (var filter in _templateFile.FilterLines) {
+                                    l = Regex.Replace(l, filter.Pattern.ToRegex(), filter.Replacement);
                                 }
                             }
-                            // skip empty data lines at beginning of template instead of the end
-                            // to avoid having to determine which is the last template line
-                        } while (options.SkipDataGapLines && index == 0 && (options.WhiteSpaceOnlyLinesAreEmpty ? string.IsNullOrWhiteSpace(l) : string.IsNullOrEmpty(l)));
+                            m = tl.RegexObject.Match(l);
+                        } while (tl.ForwardCaptureNames.Any(x => !m.Groups[x].Success));  // SkipDataLineIfNotFound
 
-                        if (useFilter) {
-                            foreach (var filter in _templateFile.FilterLines) {
-                                l = Regex.Replace(l, filter.Pattern.ToRegex(), filter.Replacement);
+                        if (!m.Success) {
+                            if (tl.SkipTemplateLineIfNotFound) {
+                                // to next template line
+                                break;
+                            } else if (!tl.RepeatTemplateLineUntilNotFound) {
+                                throw new ArgumentException($"line {lineCount} doesn't match template index {index + 1}");
                             }
                         }
-                        m = tl.RegexObject.Match(l);
-                    } while (tl.ForwardCaptureNames.Any(x => !m.Groups[x].Success));
-
-                    if (!m.Success) {
-                        throw new ArgumentException($"line {lineCount} doesn't match template index {index + 1}");
-                    }
-                    foreach (var group in tl.Captures) {
-                        var g = m.Groups[group.VarName!];
-                        dict[group.VarName!] = g.Success ? new CaptureResult(group, g.Value) : null;
+                        foreach (var group in tl.Captures) {
+                            var g = m.Groups[group.VarName!];
+                            if (!record.ContainsKey(group.VarName!)) {
+                                record[group.VarName!] = new CaptureResult(group);
+                            }
+                            if (g.Success) {
+                                record[group.VarName!].Values.Add(g.Value);
+                            }
+                        }
+                        if (m.Success && tl.RepeatTemplateLineUntilNotFound) {
+                            // repeat on this template line
+                            continue;
+                        }
+                        // to next template line
+                        break;
                     }
                 }
-                yield return dict;
+                yield return record;
             } while (multiple);
         }
 
-        public IEnumerable<IDictionary<string, CaptureResult?>> ProcessRecords(TextReader data, bool multiple, TemplateOptions? options = null, string? relativeFilePath = null) {
+        public IEnumerable<Record> ProcessRecords(TextReader data, bool multiple, TemplateOptions? options = null, string? relativeFilePath = null) {
             if (options == null) {
                 options = TemplateOptions.Default;
             }
             var records = ProcessRecords(GetEffectiveTemplateLines(options), data, multiple, true, options);
             if (FileNameTemplateLine != null) {
                 using var nameData = new StringReader(relativeFilePath);
-                List<KeyValuePair<string, CaptureResult?>> nameRecord;
+                List<KeyValuePair<string, CaptureResult>> nameRecord;
                 try {
                     // don't use filters when processing filename
                     nameRecord = ProcessRecords(GetFileNameTemplate(), nameData, false, false, TemplateOptions.Default).Single().ToList();
@@ -130,7 +154,7 @@ namespace ReverseTemplate.Engine {
             }
         }
 
-        async IAsyncEnumerable<IDictionary<string, CaptureResult?>> ProcessRecordsAsync(
+        async IAsyncEnumerable<Record> ProcessRecordsAsync(
             IEnumerable<(CachedTemplateLine line, int index)> templates,
             TextReader data,
             bool multiple,
@@ -138,53 +162,75 @@ namespace ReverseTemplate.Engine {
             TemplateOptions options) {
             var lineCount = 0;
             do {
-                var dict = new Dictionary<string, CaptureResult?>();
+                var record = new Record();
                 foreach ((var tl, var index) in templates) {
-                    Match m;
-                    do {
-                        string? l;
+                    while (true) {
+                        Match m;
                         do {
-                            l = await data.ReadLineAsync();
+                            string? l;
                             lineCount++;
-                            if (l == null) {
-                                if (index == 0) {
-                                    yield break;
-                                } else {
-                                    throw new EndOfStreamException($"reached end of data at template index {index}");
+                            do {
+                                l = await data.ReadLineAsync();
+                                if (l == null) {
+                                    if (tl.RepeatTemplateLineUntilNotFound) {
+                                        yield return record;
+                                        yield break;
+                                    }
+                                    if (index == 0) {
+                                        yield break;
+                                    } else {
+                                        throw new EndOfStreamException($"reached end of data at template index {index + 1}");
+                                    }
+                                }
+                                // skip empty data lines at beginning of template instead of the end
+                                // to avoid having to determine which is the last template line
+                            } while (options.SkipDataGapLines && index == 0 && (options.WhiteSpaceOnlyLinesAreEmpty ? string.IsNullOrWhiteSpace(l) : string.IsNullOrEmpty(l)));
+
+                            if (useFilter) {
+                                foreach (var filter in _templateFile.FilterLines) {
+                                    l = Regex.Replace(l, filter.Pattern.ToRegex(), filter.Replacement);
                                 }
                             }
-                            // skip empty data lines at beginning of template instead of the end
-                            // to avoid having to determine which is the last template line
-                        } while (options.SkipDataGapLines && index == 0 && (options.WhiteSpaceOnlyLinesAreEmpty ? string.IsNullOrWhiteSpace(l) : string.IsNullOrEmpty(l)));
+                            m = tl.RegexObject.Match(l);
+                        } while (tl.ForwardCaptureNames.Any(x => !m.Groups[x].Success));  // SkipDataLineIfNotFound
 
-                        if (useFilter) {
-                            foreach (var filter in _templateFile.FilterLines) {
-                                l = Regex.Replace(l, filter.Pattern.ToRegex(), filter.Replacement);
+                        if (!m.Success) {
+                            if (tl.SkipTemplateLineIfNotFound) {
+                                // to next template line
+                                break;
+                            } else if (!tl.RepeatTemplateLineUntilNotFound) {
+                                throw new ArgumentException($"line {lineCount} doesn't match template index {index + 1}");
                             }
                         }
-                        m = tl.RegexObject.Match(l);
-                    } while (tl.ForwardCaptureNames.Any(x => !m.Groups[x].Success));
-
-                    if (!m.Success) {
-                        throw new ArgumentException($"line {lineCount} doesn't match template index {index + 1}");
-                    }
-                    foreach (var group in tl.Captures) {
-                        var g = m.Groups[group.VarName!];
-                        dict[group.VarName!] = g.Success ? new CaptureResult(group, g.Value) : null;
+                        foreach (var group in tl.Captures) {
+                            var g = m.Groups[group.VarName!];
+                            if (!record.ContainsKey(group.VarName!)) {
+                                record[group.VarName!] = new CaptureResult(group);
+                            }
+                            if (g.Success) {
+                                record[group.VarName!].Values.Add(g.Value);
+                            }
+                        }
+                        if (m.Success && tl.RepeatTemplateLineUntilNotFound) {
+                            // repeat on this template line
+                            continue;
+                        }
+                        // to next template line
+                        break;
                     }
                 }
-                yield return dict;
+                yield return record;
             } while (multiple);
         }
 
-        public async IAsyncEnumerable<IDictionary<string, CaptureResult?>> ProcessRecordsAsync(TextReader data, bool multiple, TemplateOptions? options = null, string? relativeFilePath = null) {
+        public async IAsyncEnumerable<Record> ProcessRecordsAsync(TextReader data, bool multiple, TemplateOptions? options = null, string? relativeFilePath = null) {
             if (options == null) {
                 options = TemplateOptions.Default;
             }
             var records = ProcessRecordsAsync(GetEffectiveTemplateLines(options), data, multiple, true, options);
             if (FileNameTemplateLine != null) {
                 using var nameData = new StringReader(relativeFilePath);
-                List<KeyValuePair<string, CaptureResult?>> nameRecord;
+                List<KeyValuePair<string, CaptureResult>> nameRecord;
                 try {
                     // we know that filename is coming from StringReader anyway
                     // no need to use async

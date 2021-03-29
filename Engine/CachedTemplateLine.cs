@@ -15,6 +15,8 @@ namespace ReverseTemplate.Engine {
         public Regex RegexObject { get; }
         public IReadOnlyList<string> AllCaptureGroups { get; }
         public IReadOnlyList<string> ForwardCaptureNames { get; }
+        public bool SkipTemplateLineIfNotFound { get; }
+        public bool RepeatTemplateLineUntilNotFound { get; }
 
         string ToRegex(IEnumerable<LineSection> sections) {
             var sb = new StringBuilder();
@@ -47,6 +49,8 @@ namespace ReverseTemplate.Engine {
             RegexString = ToRegex(Sections);
             RegexObject = new Regex(RegexString);
             AllCaptureGroups = RegexObject.GetGroupNames().Where(g => !g.StartsWith("__") && !Regex.IsMatch(g, "^[0-9]*$")).ToList();
+            SkipTemplateLineIfNotFound = Captures.Any(x => x.Flags.HasFlag(CaptureFlags.SkipTemplateLineIfNotFound));
+            RepeatTemplateLineUntilNotFound = Captures.Any(x => x.Flags.HasFlag(CaptureFlags.RepeatTemplateLineUntilNotFound));
         }
 
         public CachedTemplateLine(IEnumerable<LineSection> sections) : this(new TemplateLine(sections)) {

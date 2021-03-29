@@ -50,21 +50,22 @@ namespace ReverseTemplate.PSModule {
 
         void SetProperty(PSObject pso, CaptureResult result) {
             PSObject prop = pso;
+            var section = result.Section;
             // traverse variable parts to before the final part
-            for (int i = 0; i < result.Section.VarPath.Count - 1; i++) {
-                if (result.Section.VarPath[i] is ArrayVariablePart) {
+            for (int i = 0; i < section.VarPath.Count - 1; i++) {
+                if (section.VarPath[i] is ArrayVariablePart) {
                     throw new InvalidOperationException("Array variable part only allowed at the end of the capture");
                 }
-                prop = UpsertProperty<PSObject>(prop, result.Section.VarPath[i].Name);
+                prop = UpsertProperty<PSObject>(prop, section.VarPath[i].Name);
             }
             // set final capture part
-            if (result.Section.VarPath.Count > 0) {
-                var vp = result.Section.VarPath.Last();
+            if (section.VarPath.Count > 0) {
+                var vp = section.VarPath.Last();
                 if (vp is ObjectVariablePart) {
-                    prop.Members.Add(new PSNoteProperty(vp.Name, result.Value));
+                    prop.Members.Add(new PSNoteProperty(vp.Name, result.Values.Single()));
                 } else if (vp is ArrayVariablePart) {
-                    var array = UpsertProperty<List<PSObject>>(prop, vp.Name);
-                    array.Add(result.Value);
+                    var array = UpsertProperty<List<string>>(prop, vp.Name);
+                    array.AddRange(result.Values);
                 }
             }
         }
@@ -94,14 +95,13 @@ namespace ReverseTemplate.PSModule {
                 // even if rootDir.FullName contains the / then TrimStart will take care of it
                 var relativeFilePath = file.FullName.Substring(rootDir.FullName.Length).TrimStart(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
                 var normalizedFilePath = relativeFilePath.Replace(Path.DirectorySeparatorChar, '/').Replace(Path.AltDirectorySeparatorChar, '/');
-                WriteVerbose($"Processing file {normalizedFilePath}");
                 using var fileText = file.OpenText();
                 try {
                     var engine = engines.FirstOrDefault(e => e.IsFileMatch(normalizedFilePath));
                     if (engine == null) {
                         continue;
                     }
-                    WriteVerbose($"Found template {engine.Identifier}");
+                    WriteVerbose($"Found template {engine.Identifier} for {normalizedFilePath}");
                     var totalRecords = 0;
                     foreach (var record in engine.ProcessRecords(fileText, Multiple, relativeFilePath: normalizedFilePath)) {
                         var pso = new PSObject();
