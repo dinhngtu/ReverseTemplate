@@ -13,24 +13,31 @@ namespace ReverseTemplate.Engine {
         private readonly TemplateFile _templateFile;
         private readonly List<CachedTemplateLine> _templateLines;
         private readonly CachedTemplateLine? _fileNameLine;
+        private readonly string? _identifier;
 
         public TemplateFile TemplateFile => _templateFile;
         public CachedTemplateLine? FileNameTemplateLine => _fileNameLine;
         public IReadOnlyList<CachedTemplateLine> TemplateLines => _templateLines.AsReadOnly();
+        public string? Identifier => _identifier;
 
-        public Template(TemplateFile templateFile) {
+        public Template(TemplateFile templateFile, string? identifier = null) {
             _templateFile = templateFile;
             _templateLines = _templateFile.TemplateLines.Select(tl => new CachedTemplateLine(tl)).ToList();
             _fileNameLine = _templateFile.FileNameTemplateLine != null ? new CachedTemplateLine(_templateFile.FileNameTemplateLine) : null;
+            _identifier = identifier;
         }
 
-        public static Template Create(TextReader data) {
-            return new Template(TemplateFileParser.TemplateFile.Parse(data.ReadToEnd()));
+        public static Template Create(TextReader data, string? identifier = null) {
+            return new Template(TemplateFileParser.TemplateFile.Parse(data.ReadToEnd()), identifier);
         }
 
         public static Template Create(string templateFileName) {
             using var templateReader = new StreamReader(templateFileName);
-            return Create(templateReader);
+            return Create(templateReader, templateFileName);
+        }
+
+        public bool IsFileMatch(string fileName) {
+            return _fileNameLine?.RegexObject.IsMatch(fileName) ?? true;
         }
 
         IEnumerable<(CachedTemplateLine line, int index)> GetEffectiveTemplateLines(TemplateOptions options, bool loop = false) {

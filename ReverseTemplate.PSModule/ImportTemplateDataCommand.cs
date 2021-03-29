@@ -15,7 +15,7 @@ namespace ReverseTemplate.PSModule {
         public string RootPath { get; set; }
 
         [Parameter(Mandatory = true)]
-        public string TemplatePath { get; set; }
+        public string[] TemplatePath { get; set; }
 
         [Parameter()]
         public SwitchParameter Multiple { get; set; }
@@ -68,15 +68,20 @@ namespace ReverseTemplate.PSModule {
         }
 
         protected override void EndProcessing() {
-            var engine = Template.Create(SessionState.Path.GetUnresolvedProviderPathFromPSPath(TemplatePath));
-            if (engine.FileNameTemplateLine != null) {
-                WriteTemplateLine(engine.FileNameTemplateLine, "filename");
-            }
-            foreach (var filter in engine.TemplateFile.FilterLines) {
-                WriteFilterLine(filter);
-            }
-            foreach (var line in engine.TemplateLines) {
-                WriteTemplateLine(line);
+            var engines = (
+                from tp in TemplatePath
+                from tpr in SessionState.Path.GetResolvedProviderPathFromPSPath(tp, out var provider)
+                select Template.Create(tpr)).ToList();
+            foreach (var engine in engines) {
+                if (engine.FileNameTemplateLine != null) {
+                    WriteTemplateLine(engine.FileNameTemplateLine, "filename");
+                }
+                foreach (var filter in engine.TemplateFile.FilterLines) {
+                    WriteFilterLine(filter);
+                }
+                foreach (var line in engine.TemplateLines) {
+                    WriteTemplateLine(line);
+                }
             }
             var rootPath = SessionState.Path.GetUnresolvedProviderPathFromPSPath(RootPath);
             WriteVerbose($"Processing root path {rootPath}");
@@ -87,21 +92,30 @@ namespace ReverseTemplate.PSModule {
                 // even if rootDir.FullName contains the / then TrimStart will take care of it
                 var relativeFilePath = file.FullName.Substring(rootDir.FullName.Length).TrimStart(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
                 var normalizedFilePath = relativeFilePath.Replace(Path.DirectorySeparatorChar, '/').Replace(Path.AltDirectorySeparatorChar, '/');
-                WriteVerbose("Processing file " + normalizedFilePath);
+                WriteVerbose($"Processing file {normalizedFilePath}");
                 using var fileText = file.OpenText();
                 try {
+                    var engine = engines.FirstOrDefault(e => e.IsFileMatch(normalizedFilePath));
+                    if (engine == null) {
+                        continue;
+                    }
+                    WriteVerbose($"Found template {engine.Identifier}");
                     var totalRecords = 0;
                     foreach (var record in engine.ProcessRecords(fileText, Multiple, relativeFilePath: normalizedFilePath)) {
                         var pso = new PSObject();
+                        if (engines.Count > 1 && engine.Identifier != null) {
+                            pso.Members.Add(new PSNoteProperty("_template", engine.Identifier));
+                        }
                         foreach (var kv in record) {
                             SetProperty(pso, kv.Value);
                         }
                         WriteObject(pso);
                         totalRecords++;
                     }
-                    WriteVerbose("Emitted " + totalRecords.ToString() + " records");
+                    WriteVerbose($"Emitted {totalRecords} records");
                 } catch (Exception ex) {
-                    throw new Exception($"error at file '{normalizedFilePath}'", ex);
+                    WriteError(new ErrorRecord(ex, "FileError", ErrorCategory.InvalidData, normalizedFilePath));
+                    continue;
                 }
 
                 if (++fileCount % 100 == 0) {
