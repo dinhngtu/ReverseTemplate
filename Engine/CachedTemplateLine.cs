@@ -44,13 +44,14 @@ namespace ReverseTemplate.Engine {
                 }
                 return x;
             }).ToList();
-            Captures = Sections.OfType<CachedCaptureSection>().Where(cs => cs.VarPath.Any(x => !x.Name.StartsWith("__"))).ToList();
-            ForwardCaptureNames = Sections.OfType<CachedCaptureSection>().Where(cs => cs.Flags.HasFlag(CaptureFlags.SkipDataLineIfNotFound)).Select(x => x.VarName!).ToList();
+            var cachedCaptureSections = Sections.OfType<CachedCaptureSection>().ToList();
+            Captures = cachedCaptureSections.Where(cs => cs.VarPath.Any(x => !x.Name.StartsWith("__"))).ToList();
+            ForwardCaptureNames = cachedCaptureSections.Where(cs => cs.Flags.HasFlag(CaptureFlags.SkipDataLineIfNotFound)).Select(x => (x.VarName!)).ToList();
             RegexString = ToRegex(Sections);
             RegexObject = new Regex(RegexString);
             AllCaptureGroups = RegexObject.GetGroupNames().Where(g => !g.StartsWith("__") && !Regex.IsMatch(g, "^[0-9]*$")).ToList();
-            SkipTemplateLineIfNotFound = Captures.Any(x => x.Flags.HasFlag(CaptureFlags.SkipTemplateLineIfNotFound));
-            RepeatTemplateLineUntilNotFound = Captures.Any(x => x.Flags.HasFlag(CaptureFlags.RepeatTemplateLineUntilNotFound));
+            SkipTemplateLineIfNotFound = cachedCaptureSections.Any(x => x.Flags.HasFlag(CaptureFlags.SkipTemplateLineIfNotFound));
+            RepeatTemplateLineUntilNotFound = cachedCaptureSections.Any(x => x.Flags.HasFlag(CaptureFlags.RepeatTemplateLineUntilNotFound));
         }
 
         public CachedTemplateLine(IEnumerable<LineSection> sections) : this(new TemplateLine(sections)) {

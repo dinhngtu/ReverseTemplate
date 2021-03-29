@@ -170,5 +170,23 @@ namespace ReverseTemplate.Tests {
             Assert.Equal("4", output["a"].Values[3]);
             Assert.Single(output["c"].Values, "5");
         }
+
+        [Fact]
+        public void ForwardTest() {
+            using var input = new StringReader("b=0\na=1\na=2\na=3\na=4\nc=5\n");
+            var engine = MakeTemplate("b={{%d=b}}\n{{/c=/>}}{{%d=c}}\n");
+            var output = engine.ProcessRecords(input, false).Single();
+            Assert.Single(output["b"].Values, "0");
+            Assert.Single(output["c"].Values, "5");
+        }
+
+        [Fact]
+        public void BackwardTest() {
+            using var input = new StringReader("b=0\nc=5\n");
+            var engine = MakeTemplate("b={{%d=b}}\n{{/a=/<}}{{%d=a}}\nc={{%d=c}}\n");
+            var output = engine.ProcessRecords(input, false).Single();
+            Assert.Single(output["b"].Values, "0");
+            Assert.Single(output["c"].Values, "5");
+        }
     }
 }
