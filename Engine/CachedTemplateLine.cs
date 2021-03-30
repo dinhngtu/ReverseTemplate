@@ -14,7 +14,9 @@ namespace ReverseTemplate.Engine {
         public string RegexString { get; }
         public Regex RegexObject { get; }
         public IReadOnlyList<string> AllCaptureGroups { get; }
-        public IReadOnlyList<string> ForwardCaptureNames { get; }
+        public bool SkipDataLineIfNotFound { get; }
+        public bool SkipTemplateLineIfNotFound { get; }
+        public bool RepeatTemplateLineUntilNotFound { get; }
 
         string ToRegex(IEnumerable<LineSection> sections) {
             var sb = new StringBuilder();
@@ -42,11 +44,14 @@ namespace ReverseTemplate.Engine {
                 }
                 return x;
             }).ToList();
-            Captures = Sections.OfType<CachedCaptureSection>().Where(cs => cs.VarPath.Any(x => !x.Name.StartsWith("__"))).ToList();
-            ForwardCaptureNames = Sections.OfType<CachedCaptureSection>().Where(cs => cs.Flags.HasFlag(CaptureFlags.SkipDataLineIfNotFound)).Select(x => x.VarName!).ToList();
+            var cachedCaptureSections = Sections.OfType<CachedCaptureSection>().ToList();
+            Captures = cachedCaptureSections.Where(cs => cs.VarPath.Any(x => !x.Name.StartsWith("__"))).ToList();
             RegexString = ToRegex(Sections);
             RegexObject = new Regex(RegexString);
             AllCaptureGroups = RegexObject.GetGroupNames().Where(g => !g.StartsWith("__") && !Regex.IsMatch(g, "^[0-9]*$")).ToList();
+            SkipDataLineIfNotFound = cachedCaptureSections.Any(x => x.Flags.HasFlag(CaptureFlags.SkipDataLineIfNotFound));
+            SkipTemplateLineIfNotFound = cachedCaptureSections.Any(x => x.Flags.HasFlag(CaptureFlags.SkipTemplateLineIfNotFound));
+            RepeatTemplateLineUntilNotFound = cachedCaptureSections.Any(x => x.Flags.HasFlag(CaptureFlags.RepeatTemplateLineUntilNotFound));
         }
 
         public CachedTemplateLine(IEnumerable<LineSection> sections) : this(new TemplateLine(sections)) {
