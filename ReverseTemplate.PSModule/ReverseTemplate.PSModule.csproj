@@ -17,4 +17,10 @@
     <ProjectReference Include="..\ReverseTemplate.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <None Update="ReverseTemplate.psd1">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
 </Project>
