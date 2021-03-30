@@ -102,7 +102,7 @@ namespace ReverseTemplate.Engine {
                                 }
                             }
                             m = tl.RegexObject.Match(l);
-                        } while (tl.ForwardCaptureNames.Any(x => !m.Groups[x].Success));  // SkipDataLineIfNotFound
+                        } while (!m.Success && tl.SkipDataLineIfNotFound);
 
                         if (!m.Success) {
                             if (tl.SkipTemplateLineIfNotFound) {
@@ -203,7 +203,7 @@ namespace ReverseTemplate.Engine {
                                 }
                             }
                             m = tl.RegexObject.Match(l);
-                        } while (tl.ForwardCaptureNames.Any(x => !m.Groups[x].Success));  // SkipDataLineIfNotFound
+                        } while (!m.Success && tl.SkipDataLineIfNotFound);
 
                         if (!m.Success) {
                             if (tl.SkipTemplateLineIfNotFound) {
