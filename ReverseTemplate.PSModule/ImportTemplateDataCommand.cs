@@ -90,8 +90,9 @@ namespace ReverseTemplate.PSModule {
             WriteVerbose($"Processing root path {rootPath}");
             var rootDir = new DirectoryInfo(rootPath);
 
-            int fileCount = 0;
+            int fileCount = 0, matchCount = 0;
             foreach (var file in rootDir.EnumerateFiles("*", Recurse ? SearchOption.AllDirectories : SearchOption.TopDirectoryOnly)) {
+                fileCount++;
                 // even if rootDir.FullName contains the / then TrimStart will take care of it
                 var relativeFilePath = file.FullName.Substring(rootDir.FullName.Length).TrimStart(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
                 var normalizedFilePath = relativeFilePath.Replace(Path.DirectorySeparatorChar, '/').Replace(Path.AltDirectorySeparatorChar, '/');
@@ -120,14 +121,15 @@ namespace ReverseTemplate.PSModule {
                     continue;
                 }
 
-                if (++fileCount % 100 == 0) {
-                    WriteProgress(new ProgressRecord(0, "Importing files...", $"{fileCount} files processed.") {
+                matchCount++;
+                if (fileCount % 100 == 0) {
+                    WriteProgress(new ProgressRecord(0, "Importing files...", $"Matched {matchCount} files of {fileCount}.") {
                         PercentComplete = -1,
                         SecondsRemaining = -1,
                     });
                 }
             }
-            WriteProgress(new ProgressRecord(0, "Importing files...", $"{fileCount} files processed.") {
+            WriteProgress(new ProgressRecord(0, "Importing files...", $"Matched {matchCount} files of {fileCount}.") {
                 RecordType = ProgressRecordType.Completed
             });
         }
