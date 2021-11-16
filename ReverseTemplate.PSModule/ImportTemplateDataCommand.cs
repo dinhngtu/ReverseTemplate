@@ -23,6 +23,9 @@ namespace ReverseTemplate.PSModule {
         [Parameter()]
         public SwitchParameter Recurse { get; set; }
 
+        [Parameter()]
+        public SwitchParameter AddFilePath { get; set; }
+
         void WriteTemplateLine(CachedTemplateLine line, string type = null) {
             if (type != null) {
                 type += ": ";
@@ -108,6 +111,9 @@ namespace ReverseTemplate.PSModule {
                         var pso = new PSObject();
                         if (engines.Count > 1 && engine.Identifier != null) {
                             pso.Members.Add(new PSNoteProperty("_template", engine.Identifier));
+                        }
+                        if (AddFilePath) {
+                            pso.Members.Add(new PSNoteProperty("_file", normalizedFilePath));
                         }
                         foreach (var kv in record) {
                             SetProperty(pso, kv.Value);
